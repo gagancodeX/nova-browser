@@ -4,34 +4,32 @@ A lightweight, TV-first browser-style web app designed for the Xiaomi Mi TV 4A 3
 
 ## Web edition
 
-The installable web app lives in [web/](web/). It is a static HTML/CSS/JavaScript project, optimized for TV screens, remote controls, and desktop browsers.
+The installable web app lives in [web/](web/). It is optimized for TV screens, remote controls, and desktop browsers.
 
 Features:
 - TV-friendly address/search bar and browser navigation
+- D-pad support: Up, Down, Left, Right, OK/Select, and Back
+- Search opens real search results as a normal top-level page
 - Google, Bing, and DuckDuckGo search
-- Up to three lightweight tabs
+- Up to three lightweight app tabs
 - Bookmarks and browsing history stored locally
 - Quick links for popular streaming and information sites
 - HTML5 playback for direct MP4, WebM, and Ogg video URLs
-- YouTube embed support
-- Full-screen viewer and open-full-site fallback
-- Keyboard and remote-friendly focus states
+- YouTube video embed support when the URL identifies a specific video
+- Clear full-browser launch screen for sites that block iframes
+- Full-screen video and viewer controls
 - PWA manifest and offline app-shell caching
 
-### Run locally
+## Render deployment
 
-Open `web/index.html` in a browser, or serve the `web/` directory with any static HTTP server.
-
-### Render deployment
-
-Create a **Static Site** connected to this repository:
+Render Static Site is connected to this repository:
 - Branch: `main`
 - Build command: `echo "NOVA web edition is static"`
 - Publish directory: `web`
 
-### Browser limitations
+## Important browser limits
 
-The in-page viewer uses an iframe. Some websites explicitly prevent embedding; use **Open full site** for those websites. This web edition is not a Chromium engine or an unrestricted network proxy. DRM-protected streaming services, codecs, and playback quality depend on the browser and device. Browser extensions and system-level ad blocking are not available to this web app.
+This hosted web edition is a browser-style launcher, not a Chromium engine. It cannot display every website inside its own iframe. Search engines, YouTube's homepage, and several streaming services block embedded frames; NOVA now opens search results as normal pages and provides a full-browser launch screen for known restricted sites. DRM-protected streams and codecs depend on the TV's actual browser/WebView engine. For the full Chrome-like experience with site navigation in one window, use the native Android APK edition with Android WebView.
 
 ## Device notes
 
