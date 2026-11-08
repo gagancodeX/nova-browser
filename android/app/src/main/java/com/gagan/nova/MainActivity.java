@@ -113,7 +113,7 @@ public class MainActivity extends Activity {
         return d;
     }
 
-    private GradientDrawable focusBackground(int normal, int focused) {
+    private android.graphics.drawable.Drawable focusBackground(int normal, int focused) {
         android.graphics.drawable.StateListDrawable d = new android.graphics.drawable.StateListDrawable();
         d.addState(new int[]{android.R.attr.state_focused}, rounded(focused, 12));
         d.addState(new int[]{android.R.attr.state_pressed}, rounded(focused, 12));
