@@ -891,7 +891,7 @@ public class MainActivity extends Activity {
         LinearLayout shell = new LinearLayout(this);
         shell.setOrientation(LinearLayout.HORIZONTAL);
         shell.setBackgroundColor(Color.rgb(8, 12, 22));
-        content.addView(shell, new FrameLayout.LayoutParams(-1, -1));
+        // Attach the completed home shell once, after all its children have been built.
 
         // Compact navigation rail, sized for TV remotes.
         LinearLayout rail = new LinearLayout(this);
