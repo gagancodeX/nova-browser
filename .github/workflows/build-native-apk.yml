@@ -37,8 +37,34 @@ jobs:
         with:
           gradle-version: "8.7"
 
-      - name: Build debug APK
+      - name: Compile debug variant
         run: gradle --no-daemon -p android assembleDebug
+
+      - name: Decode stable NOVA release keystore
+        shell: bash
+        env:
+          NOVA_KEYSTORE_BASE64: ${{ secrets.NOVA_KEYSTORE_BASE64 }}
+          NOVA_KEYSTORE_PASSWORD: ${{ secrets.NOVA_KEYSTORE_PASSWORD }}
+          NOVA_KEY_ALIAS: ${{ secrets.NOVA_KEY_ALIAS }}
+          NOVA_KEY_PASSWORD: ${{ secrets.NOVA_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in NOVA_KEYSTORE_BASE64 NOVA_KEYSTORE_PASSWORD NOVA_KEY_ALIAS NOVA_KEY_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing repository Actions secret: $name"
+              echo "Add the four NOVA signing secrets described in README.md, then rerun this workflow."
+              exit 1
+            fi
+          done
+          echo "$NOVA_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/nova-release.jks"
+          test -s "$RUNNER_TEMP/nova-release.jks"
+          echo "NOVA_KEYSTORE_PATH=$RUNNER_TEMP/nova-release.jks" >> "$GITHUB_ENV"
+          echo "NOVA_KEYSTORE_PASSWORD=$NOVA_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "NOVA_KEY_ALIAS=$NOVA_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "NOVA_KEY_PASSWORD=$NOVA_KEY_PASSWORD" >> "$GITHUB_ENV"
+
+      - name: Build stable-signed release APK
+        run: gradle --no-daemon -p android assembleRelease
 
       - name: Prepare versioned and stable APK assets
         id: apk
@@ -50,7 +76,7 @@ jobs:
             exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          cp android/app/build/outputs/apk/debug/app-debug.apk "NOVA-TV-Browser-$VERSION.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "NOVA-TV-Browser-$VERSION.apk"
           sha256sum "NOVA-TV-Browser-$VERSION.apk" > "NOVA-TV-Browser-$VERSION.sha256"
           cp "NOVA-TV-Browser-$VERSION.apk" "NOVA-TV-Browser.apk"
           sha256sum "NOVA-TV-Browser.apk" > "NOVA-TV-Browser.apk.sha256"
@@ -77,9 +103,10 @@ jobs:
             NOVA-TV-Browser.apk
             NOVA-TV-Browser.apk.sha256
           body: |
-            Installable NOVA TV Browser APK for Android TV.
+            Stable-signed installable NOVA TV Browser APK for Android TV.
 
-            Download NOVA-TV-Browser.apk for the latest build.
+            In-app updates are supported from the NOVA Browser menu → Check for NOVA update.
+            Download NOVA-TV-Browser.apk for manual installation.
             Check NOVA-TV-Browser.apk.sha256 to verify the download.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
