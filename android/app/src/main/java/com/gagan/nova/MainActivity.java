@@ -367,10 +367,10 @@ public class MainActivity extends Activity {
                 return handleExternalScheme(url);
             }
             @Override public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, String url) {
-                return interceptAdRequest(url);
+                return interceptAdRequest(url, view);
             }
             @Override public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                return interceptAdRequest(request.getUrl().toString());
+                return interceptAdRequest(request.getUrl().toString(), view);
             }
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
                 Tab tab = findTab(view);
@@ -484,14 +484,20 @@ public class MainActivity extends Activity {
         return host.equals(domain) || host.endsWith("." + domain);
     }
 
-    private android.webkit.WebResourceResponse interceptAdRequest(String rawUrl) {
+    private android.webkit.WebResourceResponse interceptAdRequest(String rawUrl, WebView source) {
         if (!adBlockEnabled) return null;
         Uri uri = Uri.parse(rawUrl);
         String host = uri.getHost();
         if (host == null) return null;
         host = host.toLowerCase(Locale.ROOT);
-        for (String allowed : allowedAdHosts) {
-            if (hostMatches(host, allowed)) return null;
+        if (source != null && source.getUrl() != null) {
+            String pageHost = Uri.parse(source.getUrl()).getHost();
+            if (pageHost != null) {
+                pageHost = pageHost.toLowerCase(Locale.ROOT);
+                for (String allowed : allowedAdHosts) {
+                    if (hostMatches(pageHost, allowed)) return null;
+                }
+            }
         }
         String[] adHosts = {
             "doubleclick.net", "googlesyndication.com", "googleadservices.com",
