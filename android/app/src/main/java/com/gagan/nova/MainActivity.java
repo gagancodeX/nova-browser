@@ -207,9 +207,17 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        try {
+            initializeNova();
+        } catch (Throwable error) {
+            showStartupFailure(error);
+        }
+    }
+
+    private void initializeNova() {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().setStatusBarColor(Color.rgb(9, 13, 22));
-        getWindow().setNavigationBarColor(Color.rgb(9, 13, 22));
+        if (Build.VERSION.SDK_INT >= 21) getWindow().setNavigationBarColor(Color.rgb(9, 13, 22));
         enterImmersive();
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         desktopMode = prefs.getBoolean("desktop_mode", false);
@@ -221,10 +229,64 @@ public class MainActivity extends Activity {
         pointerColor = prefs.getInt("pointer_color", Color.WHITE);
         pointerShape = prefs.getString("pointer_shape", "Arrow");
         pointerOutlineEnabled = prefs.getBoolean("pointer_outline", true);
-        allowedAdHosts = new HashSet<>(prefs.getStringSet("ad_allowlist", new HashSet<>()));
+        Set<String> savedAllowed = prefs.getStringSet("ad_allowlist", new HashSet<>());
+        allowedAdHosts = savedAllowed == null ? new HashSet<>() : new HashSet<>(savedAllowed);
         buildShell();
         createTab(false);
         showHome();
+    }
+
+    private void showStartupFailure(Throwable error) {
+        String details = android.util.Log.getStackTraceString(error);
+        try {
+            if (prefs == null) prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+            prefs.edit().putString("last_startup_error", details).apply();
+        } catch (Throwable ignored) { }
+
+        try {
+            LinearLayout screen = new LinearLayout(this);
+            screen.setOrientation(LinearLayout.VERTICAL);
+            screen.setGravity(Gravity.CENTER_HORIZONTAL);
+            screen.setPadding(dp(28), dp(24), dp(28), dp(24));
+            screen.setBackgroundColor(Color.rgb(8, 12, 22));
+
+            TextView title = label("NOVA could not start", 25, Color.WHITE, true);
+            screen.addView(title, new LinearLayout.LayoutParams(-1, -2));
+
+            TextView explanation = label(
+                    "Startup error captured. Take a photo of the details below and send it so the exact crash can be fixed.",
+                    13, Color.rgb(178, 192, 214), false);
+            LinearLayout.LayoutParams ep = new LinearLayout.LayoutParams(-1, -2);
+            ep.topMargin = dp(12);
+            screen.addView(explanation, ep);
+
+            ScrollView scroll = new ScrollView(this);
+            TextView trace = label(details, 10, Color.rgb(255, 205, 151), false);
+            trace.setTextIsSelectable(true);
+            trace.setPadding(dp(12), dp(10), dp(12), dp(10));
+            scroll.addView(trace);
+            LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, 0, 1f);
+            tp.topMargin = dp(14);
+            screen.addView(scroll, tp);
+
+            TextView copy = button("COPY ERROR DETAILS", "Copy startup error details");
+            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, dp(46));
+            cp.topMargin = dp(12);
+            screen.addView(copy, cp);
+            copy.setOnClickListener(v -> {
+                try {
+                    ClipboardManager clipboard = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+                    if (clipboard != null) clipboard.setPrimaryClip(ClipData.newPlainText("NOVA startup error", details));
+                    toast("Error details copied.");
+                } catch (Throwable ignored) {
+                    toast("Select the error text and take a photo.");
+                }
+            });
+            setContentView(screen);
+        } catch (Throwable fallbackError) {
+            Toast.makeText(this, "NOVA startup failed: " + error.getClass().getSimpleName(), Toast.LENGTH_LONG).show();
+            finish();
+        }
     }
 
     private void enterImmersive() {
