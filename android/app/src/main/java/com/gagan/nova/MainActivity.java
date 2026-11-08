@@ -125,9 +125,14 @@ public class MainActivity extends Activity {
 
     private static class Tab {
         final WebView web;
+        final boolean privateMode;
         String title = "New tab";
         String url = "";
-        Tab(WebView web) { this.web = web; }
+        Tab(WebView web) { this(web, false); }
+        Tab(WebView web, boolean privateMode) {
+            this.web = web;
+            this.privateMode = privateMode;
+        }
     }
 
     // Visible TV pointer drawn above WebView content. Style is controlled in Cursor settings.
@@ -460,20 +465,29 @@ public class MainActivity extends Activity {
     }
 
     private void createTab(boolean focusAddress) {
+        createTab(focusAddress, false);
+    }
+
+    private void createPrivateTab() {
+        createTab(true, true);
+    }
+
+    private void createTab(boolean focusAddress, boolean privateMode) {
         if (tabs.size() >= MAX_TABS) {
-            toast("NOVA supports 3 tabs on this TV to protect memory.");
+            toast("This TV supports up to 3 tabs. Close a tab first.");
             return;
         }
-        WebView web = createWebView();
-        Tab tab = new Tab(web);
+        WebView web = createWebView(privateMode);
+        Tab tab = new Tab(web, privateMode);
         tabs.add(tab);
         activeIndex = tabs.size() - 1;
         refreshTabs();
         showHome();
         if (focusAddress) focusAddress();
+        if (privateMode) toast("Private tab: history is not saved for this tab. Website cookies may still be shared by Android WebView.");
     }
 
-    private WebView createWebView() {
+    private WebView createWebView(boolean privateMode) {
         WebView web = new WebView(this);
         web.setBackgroundColor(Color.WHITE);
         web.setFocusable(true);
@@ -499,7 +513,11 @@ public class MainActivity extends Activity {
         s.setBuiltInZoomControls(true);
         s.setDisplayZoomControls(false);
         s.setSupportZoom(true);
-        s.setSaveFormData(true);
+        s.setSaveFormData(!privateMode);
+        if (privateMode) {
+            s.setCacheMode(WebSettings.LOAD_NO_CACHE);
+            s.setSavePassword(false);
+        }
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(true);
         if (Build.VERSION.SDK_INT >= 21) {
@@ -539,16 +557,16 @@ public class MainActivity extends Activity {
                     String title = view.getTitle();
                     if (title != null && !title.trim().isEmpty()) tab.title = title;
                     else tab.title = hostName(url);
-                    saveHistory(url, tab.title);
+                    if (!tab.privateMode) saveHistory(url, tab.title);
                 }
                 // Normalize external result links and popup links to same-tab navigation.
                 // This prevents older Android 6 WebView builds from creating a blank popup
                 // whose URL changes while the Google results page remains visible.
                 view.evaluateJavascript("(function(){try{" +
-                        "document.querySelectorAll('a[target=_blank],a[target=_new]').forEach(function(a){a.setAttribute('target','_self');});" +
-                        "document.addEventListener('click',function(e){var n=e.target;while(n&&n.tagName!=='A')n=n.parentElement;if(n&&(n.target==='_blank'||n.target==='_new'))n.target='_self';},true);" +
+                        "var links=document.getElementsByTagName('a');for(var i=0;i<links.length;i++){var t=(links[i].getAttribute('target')||'').toLowerCase();if(t==='_blank'||t==='_new')links[i].setAttribute('target','_self');}" +
+                        "document.addEventListener('click',function(e){var n=e.target;while(n&&n.tagName!=='A')n=n.parentNode;if(n){var t=(n.getAttribute('target')||'').toLowerCase();if(t==='_blank'||t==='_new'){e.preventDefault();window.location.href=n.href;}}},true);" +
                         "window.open=function(u){if(u){window.location.href=u;}return window;};" +
-                        "document.querySelectorAll('video').forEach(function(v){v.setAttribute('controls','controls');v.setAttribute('playsinline','');v.style.maxWidth='100%';});" +
+                        "var videos=document.getElementsByTagName('video');for(var j=0;j<videos.length;j++){videos[j].setAttribute('controls','controls');videos[j].setAttribute('playsinline','');videos[j].style.maxWidth='100%';}" +
                         "}catch(e){}})();", null);
                 if (view == activeWeb()) {
                     if (!address.hasFocus()) address.setText(url);
@@ -760,10 +778,7 @@ public class MainActivity extends Activity {
         if (q.matches("(?i)^[a-z][a-z0-9+.-]*://.*")) return q;
         if (q.matches("(?i)^([a-z0-9-]+\\.)+[a-z]{2,}(:[0-9]+)?(/[^ ]*)?$")) return "https://" + q;
         try {
-            String encoded = URLEncoder.encode(q, "UTF-8");
-            if ("Bing".equals(searchEngine)) return "https://www.bing.com/search?q=" + encoded;
-            if ("DuckDuckGo".equals(searchEngine)) return "https://duckduckgo.com/?q=" + encoded;
-            return "https://www.google.com/search?q=" + encoded;
+            return buildSearchUrl(q);
         } catch (UnsupportedEncodingException e) {
             return GOOGLE_HOME;
         }
@@ -953,6 +968,7 @@ public class MainActivity extends Activity {
         addRailButton(rail, "⌂", "Home", this::showHome, true);
         addRailButton(rail, "☆", "Bookmarks", this::showBookmarks, false);
         addRailButton(rail, "◷", "History", this::showHistory, false);
+        addRailButton(rail, "▣", "Website channels", this::showChannels, false);
         addRailButton(rail, "⇩", "Downloads", this::openDownloads, false);
         addRailButton(rail, "＋", "New tab", () -> createTab(true), false);
         View railSpacer = new View(this);
@@ -1126,8 +1142,8 @@ public class MainActivity extends Activity {
         page.addView(library, libP);
         addHomeLibraryCard(library, "☆", "Bookmarks", "Saved websites", this::showBookmarks);
         addHomeLibraryCard(library, "◷", "History", "Recently visited", this::showHistory);
+        addHomeLibraryCard(library, "▣", "Channels", "Website collections", this::showChannels);
         addHomeLibraryCard(library, "⇩", "Downloads", "Downloaded files", this::openDownloads);
-        addHomeLibraryCard(library, "⚙", "Settings", "Browser preferences", () -> showMenu(toolbar.getChildAt(toolbar.getChildCount() - 1)));
 
         addHomeSectionTitle(page, "DISCOVER & UPDATE", "Download apps and keep NOVA current");
         LinearLayout discover = new LinearLayout(this);
@@ -1304,6 +1320,152 @@ public class MainActivity extends Activity {
         }
     }
 
+    private JSONArray readChannels() {
+        try { return new JSONArray(prefs.getString("website_channels", "[]")); }
+        catch (Exception e) { return new JSONArray(); }
+    }
+
+    private void saveChannels(JSONArray channels) {
+        prefs.edit().putString("website_channels", channels.toString()).apply();
+    }
+
+    private void showChannels() {
+        mode = "PANEL";
+        panelReturnMode = activeWeb() != null && activeWeb().getUrl() != null ? "BROWSER" : "HOME";
+        content.removeAllViews();
+
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(28), dp(22), dp(28), dp(22));
+        panel.setBackgroundColor(Color.rgb(10, 15, 27));
+        scroll.addView(panel);
+
+        TextView heading = label("WEBSITE CHANNELS", 11, Color.rgb(160, 178, 205), true);
+        panel.addView(heading);
+        TextView title = label("Your web, organised.", 26, Color.WHITE, true);
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, -2);
+        tp.topMargin = dp(7);
+        panel.addView(title, tp);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(-1, dp(45));
+        ap.topMargin = dp(14);
+        panel.addView(actions, ap);
+        TextView create = settingButton("＋ Create channel", this::createWebsiteChannel);
+        actions.addView(create, new LinearLayout.LayoutParams(dp(170), -1));
+        TextView save = settingButton("Save current page", this::saveCurrentPageToChannel);
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(dp(180), -1);
+        sp.leftMargin = dp(8);
+        actions.addView(save, sp);
+
+        JSONArray channels = readChannels();
+        for (int i = 0; i < channels.length(); i++) {
+            JSONObject channel = channels.optJSONObject(i);
+            if (channel == null) continue;
+            String name = channel.optString("name", "Channel");
+            JSONArray items = channel.optJSONArray("items");
+            int count = items == null ? 0 : items.length();
+            TextView card = settingButton(name + "  ·  " + count + " websites", () -> showChannelItems(name));
+            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, dp(48));
+            cp.topMargin = dp(8);
+            panel.addView(card, cp);
+        }
+        TextView back = settingButton("← Back", this::returnFromPanel);
+        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, dp(42));
+        bp.topMargin = dp(14);
+        panel.addView(back, bp);
+        content.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
+    }
+
+    private void createWebsiteChannel() {
+        EditText name = new EditText(this);
+        name.setSingleLine(true);
+        name.setHint("e.g. Movies, News, Learning");
+        new AlertDialog.Builder(this).setTitle("Create website channel")
+                .setView(name).setNegativeButton("Cancel", null)
+                .setPositiveButton("Create", (dialog, which) -> {
+                    String value = name.getText().toString().trim();
+                    if (value.isEmpty()) return;
+                    JSONArray all = readChannels();
+                    for (int i = 0; i < all.length(); i++) {
+                        JSONObject row = all.optJSONObject(i);
+                        if (row != null && value.equalsIgnoreCase(row.optString("name"))) {
+                            toast("A channel with that name already exists.");
+                            return;
+                        }
+                    }
+                    JSONObject channel = new JSONObject();
+                    try {
+                        channel.put("name", value);
+                        channel.put("items", new JSONArray());
+                        all.put(channel);
+                        saveChannels(all);
+                        showChannels();
+                    } catch (Exception e) { toast("Could not create channel."); }
+                }).show();
+    }
+
+    private void saveCurrentPageToChannel() {
+        WebView web = activeWeb();
+        if (web == null || web.getUrl() == null ||
+                !(web.getUrl().startsWith("http://") || web.getUrl().startsWith("https://"))) {
+            toast("Open a website first.");
+            return;
+        }
+        JSONArray channels = readChannels();
+        if (channels.length() == 0) {
+            new AlertDialog.Builder(this).setTitle("Create your first channel?")
+                    .setMessage("Create a website channel, then save this page into it.")
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("Create", (d, w) -> createWebsiteChannel()).show();
+            return;
+        }
+        String[] names = new String[channels.length()];
+        for (int i = 0; i < channels.length(); i++) {
+            JSONObject channel = channels.optJSONObject(i);
+            names[i] = channel == null ? "Channel" : channel.optString("name", "Channel");
+        }
+        new AlertDialog.Builder(this).setTitle("Save page to channel")
+                .setItems(names, (dialog, which) -> {
+                    JSONObject channel = channels.optJSONObject(which);
+                    if (channel == null) return;
+                    JSONArray items = channel.optJSONArray("items");
+                    if (items == null) items = new JSONArray();
+                    for (int i = 0; i < items.length(); i++) {
+                        JSONObject item = items.optJSONObject(i);
+                        if (item != null && web.getUrl().equals(item.optString("url"))) {
+                            toast("This page is already in that channel.");
+                            return;
+                        }
+                    }
+                    JSONObject item = new JSONObject();
+                    try {
+                        item.put("url", web.getUrl());
+                        item.put("title", web.getTitle() == null ? web.getUrl() : web.getTitle());
+                        items.put(item);
+                        channel.put("items", items);
+                        saveChannels(channels);
+                        toast("Saved to " + names[which]);
+                    } catch (Exception e) { toast("Could not save page."); }
+                }).show();
+    }
+
+    private void showChannelItems(String channelName) {
+        JSONArray channels = readChannels();
+        JSONArray items = new JSONArray();
+        for (int i = 0; i < channels.length(); i++) {
+            JSONObject channel = channels.optJSONObject(i);
+            if (channel != null && channelName.equals(channel.optString("name"))) {
+                items = channel.optJSONArray("items");
+                if (items == null) items = new JSONArray();
+                break;
+            }
+        }
+        showSavedPanel("CHANNEL · " + channelName, items);
+    }
+
     private void openDownloads() {
         try {
             startActivity(new Intent(DownloadManager.ACTION_VIEW_DOWNLOADS));
@@ -1382,7 +1544,7 @@ public class MainActivity extends Activity {
             cp.rightMargin = dp(6);
             tabsRow.addView(chip, cp);
 
-            TextView name = label(shortTitle(tab.title), 11,
+            TextView name = label((tab.privateMode ? "◉ " : "") + shortTitle(tab.title), 11,
                     i == activeIndex ? Color.WHITE : Color.rgb(158, 170, 191), i == activeIndex);
             name.setSingleLine(true);
             name.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -1392,7 +1554,7 @@ public class MainActivity extends Activity {
             chip.addView(close, new LinearLayout.LayoutParams(dp(22), dp(27)));
             close.setOnClickListener(v -> closeTab(index));
             chip.setOnClickListener(v -> switchTab(index));
-            chip.setContentDescription("Tab " + (i + 1) + ": " + tab.title);
+            chip.setContentDescription((tab.privateMode ? "Private " : "") + "tab " + (i + 1) + ": " + tab.title);
         }
     }
 
@@ -1462,6 +1624,9 @@ public class MainActivity extends Activity {
         popup.getMenu().add("Cursor settings");
         popup.getMenu().add("Browser settings");
         popup.getMenu().add("New tab");
+        popup.getMenu().add("New private tab");
+        popup.getMenu().add("Website channels");
+        popup.getMenu().add("Save page to channel");
         popup.getMenu().add("Get apps & APKs");
         popup.getMenu().add("Check for NOVA update");
         popup.getMenu().add("Add bookmark");
@@ -1487,6 +1652,9 @@ public class MainActivity extends Activity {
             else if ("Cursor settings".equals(value)) showCursorSettings();
             else if ("Browser settings".equals(value)) showBrowserSettings();
             else if ("New tab".equals(value)) createTab(true);
+            else if ("New private tab".equals(value)) createPrivateTab();
+            else if ("Website channels".equals(value)) showChannels();
+            else if ("Save page to channel".equals(value)) saveCurrentPageToChannel();
             else if ("Get apps & APKs".equals(value)) showAppHub();
             else if ("Check for NOVA update".equals(value)) checkForNovaUpdates();
             else if ("Add bookmark".equals(value)) addBookmark();
@@ -1508,14 +1676,68 @@ public class MainActivity extends Activity {
         popup.show();
     }
 
-    private void cycleSearchEngine() {
-        if ("Google".equals(searchEngine)) searchEngine = "Bing";
-        else if ("Bing".equals(searchEngine)) searchEngine = "DuckDuckGo";
-        else searchEngine = "Google";
-        prefs.edit().putString("search_engine", searchEngine).apply();
-        toast("Search engine: " + searchEngine);
+    private String[] searchEngineNames() {
+        return new String[]{"Google", "Bing", "DuckDuckGo", "Brave Search", "Yahoo",
+                "Ecosia", "Startpage", "Qwant", "Mojeek", "Yandex", "Naver", "Kagi", "Custom"};
     }
 
+    private String searchUrlTemplate(String engine) {
+        if ("Bing".equals(engine)) return "https://www.bing.com/search?q=%s";
+        if ("DuckDuckGo".equals(engine)) return "https://duckduckgo.com/?q=%s";
+        if ("Brave Search".equals(engine)) return "https://search.brave.com/search?q=%s";
+        if ("Yahoo".equals(engine)) return "https://search.yahoo.com/search?p=%s";
+        if ("Ecosia".equals(engine)) return "https://www.ecosia.org/search?q=%s";
+        if ("Startpage".equals(engine)) return "https://www.startpage.com/sp/search?query=%s";
+        if ("Qwant".equals(engine)) return "https://www.qwant.com/?q=%s";
+        if ("Mojeek".equals(engine)) return "https://www.mojeek.com/search?q=%s";
+        if ("Yandex".equals(engine)) return "https://yandex.com/search/?text=%s";
+        if ("Naver".equals(engine)) return "https://search.naver.com/search.naver?query=%s";
+        if ("Kagi".equals(engine)) return "https://kagi.com/search?q=%s";
+        if ("Custom".equals(engine)) return prefs.getString("custom_search_template", "https://www.google.com/search?q=%s");
+        return "https://www.google.com/search?q=%s";
+    }
+
+    private String buildSearchUrl(String query) throws UnsupportedEncodingException {
+        String encoded = URLEncoder.encode(query, "UTF-8");
+        String template = searchUrlTemplate(searchEngine);
+        if (!template.contains("%s") && !template.contains("{searchTerms}")) {
+            template = "https://www.google.com/search?q=%s";
+        }
+        return template.replace("%s", encoded).replace("{searchTerms}", encoded);
+    }
+
+    private void editCustomSearchTemplate() {
+        EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setText(prefs.getString("custom_search_template", "https://www.google.com/search?q=%s"));
+        input.setHint("https://example.com/search?q=%s");
+        new AlertDialog.Builder(this).setTitle("Custom search URL")
+                .setMessage("Use %s or {searchTerms} where the encoded search query should go.")
+                .setView(input)
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    String value = input.getText().toString().trim();
+                    if (!(value.startsWith("https://") || value.startsWith("http://")) ||
+                            !(value.contains("%s") || value.contains("{searchTerms}"))) {
+                        toast("Use a valid HTTP(S) URL with %s or {searchTerms}.");
+                        return;
+                    }
+                    prefs.edit().putString("custom_search_template", value).apply();
+                    searchEngine = "Custom";
+                    prefs.edit().putString("search_engine", searchEngine).apply();
+                    toast("Custom search engine saved.");
+                }).show();
+    }
+
+    private void cycleSearchEngine() {
+        String[] engines = searchEngineNames();
+        int index = 0;
+        for (int i = 0; i < engines.length; i++) if (engines[i].equals(searchEngine)) index = i;
+        searchEngine = engines[(index + 1) % engines.length];
+        prefs.edit().putString("search_engine", searchEngine).apply();
+        if ("Custom".equals(searchEngine)) editCustomSearchTemplate();
+        else toast("Search engine: " + searchEngine);
+    }
 
     private void showAppHub() {
         mode = "PANEL";
@@ -1953,13 +2175,14 @@ public class MainActivity extends Activity {
         settingHeading(panel, "Search provider", "Choose the provider used for searches.");
         final TextView[] searchRef = new TextView[1];
         searchRef[0] = settingButton("Selected: " + searchEngine + "   ▾", () -> {
-            String[] options = {"Google", "Bing", "DuckDuckGo"};
+            String[] options = searchEngineNames();
             int index = Math.max(0, java.util.Arrays.asList(options).indexOf(searchEngine));
             new AlertDialog.Builder(this).setTitle("Search provider")
                     .setSingleChoiceItems(options, index, (dialog, which) -> {
                         searchEngine = options[which];
                         prefs.edit().putString("search_engine", searchEngine).apply();
                         dialog.dismiss();
+                        if ("Custom".equals(searchEngine)) editCustomSearchTemplate();
                         if (searchRef[0] != null) searchRef[0].setText("Selected: " + searchEngine + "   ▾");
                     }).setNegativeButton("Cancel", null).show();
         });
