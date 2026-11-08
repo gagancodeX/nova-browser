@@ -508,21 +508,24 @@ public class MainActivity extends Activity {
         String ua = web == null ? "" : web.getSettings().getUserAgentString();
         String chrome = chromeVersionFrom(ua);
         String androidVersion = Build.VERSION.RELEASE == null ? "unknown" : Build.VERSION.RELEASE;
+        String abis = Build.SUPPORTED_ABIS == null ? "unknown" : android.text.TextUtils.join(", ", Build.SUPPORTED_ABIS);
         String message = "Android version: " + androidVersion +
                 " (API " + Build.VERSION.SDK_INT + ")\n" +
-                "WebView provider: " + webViewProviderInfo() + "\n" +
-                "Chromium in user-agent: " + chrome + "\n\n" +
-                "NOVA uses the browser engine installed by the TV. Updating NOVA cannot upgrade that engine.";
+                "WebView package found: " + webViewProviderInfo() + "\n" +
+                "Chromium in user-agent: " + chrome + "\n" +
+                "CPU ABIs: " + abis + "\n\n" +
+                "No Play Store? You can transfer a compatible WebView APK by USB, but Android must accept its package signature and firmware provider configuration. Do not uninstall the built-in WebView.\n\n" +
+                "Android 6's final Google WebView branch is 105.0.5195.136. It may still be too old for some current websites.";
         new AlertDialog.Builder(this)
                 .setTitle("NOVA browser engine")
                 .setMessage(message)
-                .setPositiveButton("Open WebView in Play Store", (dialog, which) -> {
+                .setPositiveButton("Open Android 6 WebView APK page", (dialog, which) -> {
                     try {
                         Intent intent = new Intent(Intent.ACTION_VIEW,
-                                Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.webview"));
+                                Uri.parse("https://www.apkmirror.com/apk/google-inc/android-system-webview/android-system-webview-105-0-5195-136-release/"));
                         startActivity(intent);
                     } catch (Exception e) {
-                        toast("Play Store is not available on this TV.");
+                        toast("Open the APKMirror page on a computer, then copy the compatible APK to USB.");
                     }
                 })
                 .setNegativeButton("Close", null)
