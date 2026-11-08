@@ -2,7 +2,7 @@
   "use strict";
   const $ = (id) => document.getElementById(id);
   const STORAGE = {bookmarks:"nova-bookmarks-v1",history:"nova-history-v1",settings:"nova-settings-v1"};
-  const defaults = {engine:"google",dark:true,reduceMotion:false};
+  const defaults = {engine:"google",dark:true,reduceMotion:false,customSearchTemplate:"https://www.google.com/search?q=%s"};
   let settings = {...defaults,...read(STORAGE.settings,{})};
   let bookmarks = read(STORAGE.bookmarks,[]);
   let historyItems = read(STORAGE.history,[]);
@@ -22,6 +22,8 @@
     document.body.classList.toggle("reduce-motion",!!settings.reduceMotion);
     $("darkToggle").checked=!!settings.dark;$("motionToggle").checked=!!settings.reduceMotion;
     $("searchEngine").value=settings.engine;$("settingsSearchEngine").value=settings.engine;
+    $("customSearchTemplate").value=settings.customSearchTemplate || "https://www.google.com/search?q=%s";
+    $("customSearchSetting").classList.toggle("hidden",settings.engine!=="custom");
     document.documentElement.style.colorScheme=settings.dark?"dark":"light";
     document.body.classList.toggle("light-theme",!settings.dark);
   }
@@ -36,9 +38,24 @@
   }
   function searchUrl(query){
     const q=encodeURIComponent(query);
-    if(settings.engine==="bing")return "https://www.bing.com/search?q="+q;
-    if(settings.engine==="duckduckgo")return "https://duckduckgo.com/?q="+q;
-    return "https://www.google.com/search?q="+q;
+    const templates={
+      google:"https://www.google.com/search?q=%s",
+      bing:"https://www.bing.com/search?q=%s",
+      duckduckgo:"https://duckduckgo.com/?q=%s",
+      brave:"https://search.brave.com/search?q=%s",
+      yahoo:"https://search.yahoo.com/search?p=%s",
+      ecosia:"https://www.ecosia.org/search?q=%s",
+      startpage:"https://www.startpage.com/sp/search?query=%s",
+      qwant:"https://www.qwant.com/?q=%s",
+      mojeek:"https://www.mojeek.com/search?q=%s",
+      yandex:"https://yandex.com/search/?text=%s",
+      naver:"https://search.naver.com/search.naver?query=%s",
+      kagi:"https://kagi.com/search?q=%s"
+    };
+    let template=settings.engine==="custom"?settings.customSearchTemplate:templates[settings.engine];
+    const secure=template && (template.indexOf("https://")===0 || template.indexOf("http://")===0);
+    if(!secure || !(template.indexOf("%s")>=0 || template.indexOf("{searchTerms}")>=0)) template=templates.google;
+    return template.replace("%s",q).replace("{searchTerms}",q);
   }
   function isYouTubeHost(url){
     try{
@@ -183,8 +200,18 @@
   function tickClock(){const d=new Date();$("clock").textContent=d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
   $("addressForm").addEventListener("submit",e=>{e.preventDefault();navigate($("addressInput").value);});
   $("heroSearchForm").addEventListener("submit",e=>{e.preventDefault();navigate($("heroSearchInput").value);});
-  $("searchEngine").addEventListener("change",e=>{settings.engine=e.target.value;save(STORAGE.settings,settings);$("settingsSearchEngine").value=settings.engine;});
-  $("settingsSearchEngine").addEventListener("change",e=>{settings.engine=e.target.value;save(STORAGE.settings,settings);$("searchEngine").value=settings.engine;});
+  $("searchEngine").addEventListener("change",e=>{settings.engine=e.target.value;save(STORAGE.settings,settings);$("settingsSearchEngine").value=settings.engine;applySettings();});
+  $("settingsSearchEngine").addEventListener("change",e=>{settings.engine=e.target.value;save(STORAGE.settings,settings);$("searchEngine").value=settings.engine;applySettings();});
+  $("customSearchTemplate").addEventListener("change",e=>{
+    const value=e.target.value.trim();
+    const secure=value.indexOf("https://")===0 || value.indexOf("http://")===0;
+    if(!secure || !(value.indexOf("%s")>=0 || value.indexOf("{searchTerms}")>=0)){
+      toast("Custom search URL must be HTTP(S) and contain %s or {searchTerms}.");
+      e.target.value=settings.customSearchTemplate;
+      return;
+    }
+    settings.customSearchTemplate=value;save(STORAGE.settings,settings);toast("Custom search URL saved.");
+  });
   $("shortcutGrid").addEventListener("click",e=>{const card=e.target.closest("[data-url]");if(card)navigate(card.dataset.url);});
   $("manageShortcutsBtn").addEventListener("click",()=>toast("Choose any shortcut to open its website."));
   $("homeBtn").addEventListener("click",()=>{setAddress("");showView("home");setStatus("NOVA is ready");});
