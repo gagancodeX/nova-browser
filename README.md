@@ -168,3 +168,28 @@ This build wraps app initialization with a crash catcher. If startup fails, NOVA
 ## 1.4.6 startup fix
 
 Fixed the duplicate `content.addView(shell)` call in the native home screen. The home shell is now attached to the content container exactly once, preventing the `IllegalStateException: The specified child already has a parent` crash on launch.
+
+
+## 1.4.7 website navigation, APK downloads and in-app updates
+
+- Google result links with `target=_blank` and JavaScript popups are normalized to same-tab navigation for older Android WebView builds.
+- Multi-window WebView popups are disabled to avoid detached blank tabs on Android 6.
+- Main-frame HTTP and SSL failures show a more useful diagnostic message.
+- **Get Apps & APKs** hub links to F-Droid, APKMirror and GitHub; APK downloads are handed to Android's package installer.
+- **Check for NOVA update** reads the latest GitHub Release and offers download-and-install from inside NOVA.
+- Completed APK downloads open the Android installer automatically.
+- Browser settings and home dashboard include Get Apps, APK Downloads and NOVA Update shortcuts.
+
+### Stable signing setup (required once before publishing 1.4.7)
+
+Android only permits in-place app updates when the new APK uses the same signing certificate as the installed APK. The previous 1.4.6 build was an automatically generated debug-signed build, so the new stable release key requires one final uninstall/reinstall. After 1.4.7 is installed, future releases use this same key and can be installed from inside NOVA without uninstalling or clearing app data.
+
+To enable signed releases, add these four repository Actions secrets at:
+https://github.com/gagancodeX/nova-browser/settings/secrets/actions
+
+- `NOVA_KEYSTORE_BASE64` — the single-line contents of the private `NOVA-Release-Key.base64` file supplied to the repository owner
+- `NOVA_KEYSTORE_PASSWORD`
+- `NOVA_KEY_ALIAS`
+- `NOVA_KEY_PASSWORD`
+
+The repository workflow intentionally stops before publishing a release if signing secrets are missing. Keep the keystore and its passwords private and backed up. Never commit the keystore or base64 contents to this public repository.
