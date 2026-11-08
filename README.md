@@ -9,7 +9,8 @@ NOVA has two editions:
 
 - Search Google and open website URLs in the same browser window
 - YouTube and other websites load directly in the native WebView
-- TV remote D-pad, OK/Select and Back navigation
+- TV remote mouse pointer: D-pad moves the visible arrow, OK/Enter clicks
+- Back button returns through page history
 - Address bar with Android TV on-screen keyboard
 - Three tabs (low-memory cap for 1 GB TVs)
 - Back, forward, reload and home
@@ -36,7 +37,7 @@ Every push affecting `android/**` automatically starts the **Build NOVA Android 
 
 1. Open the repository's **Actions** tab.
 2. Open the latest **Build NOVA Android TV APK** run.
-3. Download the artifact named `NOVA-TV-Browser-1.1.0`.
+3. Download the artifact named `NOVA-TV-Browser-1.2.0`.
 4. Extract the APK from the downloaded artifact ZIP.
 
 ## Install on Xiaomi TV
@@ -58,3 +59,12 @@ The Render-hosted web preview is not the native browser and should not be used a
 - `android/` — native Android TV application
 - `web/` — hosted web preview
 - `.github/workflows/build-native-apk.yml` — APK build workflow
+
+
+## TV pointer controls (v1.2.0)
+
+While a website is open:
+- Press remote arrows to move the on-screen pointer.
+- Press OK / Select / Enter to click a link, button, video control or input.
+- Use Back to return through website history.
+- The pointer is positioned over the webpage, not the browser toolbar.
