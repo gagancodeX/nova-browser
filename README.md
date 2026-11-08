@@ -158,3 +158,8 @@ The native Android TV home screen has been redesigned with:
 - Web edition logo asset: [web/assets/nova-brand.svg](web/assets/nova-brand.svg)
 
 The SVG logo is a scalable vector recreation based on the NOVA artwork. It is used for repository branding and can be reused in presentations, websites and promotional material.
+
+
+## 1.4.5 startup diagnostics
+
+This build wraps app initialization with a crash catcher. If startup fails, NOVA displays the exception and offers a **Copy error details** action instead of returning silently to the launcher. Send that diagnostic text or a clear photo to identify the exact device-specific cause.
