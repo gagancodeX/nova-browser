@@ -1,5 +1,9 @@
 # NOVA TV Browser
 
+<p align="center"><img src="assets/nova-brand.svg" alt="NOVA Browser — Browse Beyond" width="760"></p>
+
+<p align="center"><a href="assets/nova-brand.svg">View / download the SVG brand logo</a> · <a href="https://github.com/gagancodeX/nova-browser/releases/latest/download/NOVA-TV-Browser.apk">Download latest Android TV APK</a></p>
+
 NOVA has two editions:
 
 - **Native Android TV APK** — the recommended version for your Xiaomi Mi TV 4A 32-inch. Websites load as normal top-level pages inside Android WebView, rather than inside cross-site iframes.
@@ -31,18 +35,23 @@ NOVA has two editions:
 
 The 2018 Mi TV 4A 32-inch has limited memory. NOVA intentionally limits the browser to three tabs.
 
-## Get the APK
+## Download the APK
 
-Every push affecting `android/**` automatically starts the **Build NOVA Android TV APK** GitHub Actions workflow.
+<https://github.com/gagancodeX/nova-browser/releases/latest/download/NOVA-TV-Browser.apk>
 
-1. Open the repository's **Actions** tab.
-2. Open the latest **Build NOVA Android TV APK** run.
-3. Download the artifact named `NOVA-TV-Browser-1.3.0`.
-4. Extract the APK from the downloaded artifact ZIP.
+**[Download the latest NOVA TV Browser APK](https://github.com/gagancodeX/nova-browser/releases/latest/download/NOVA-TV-Browser.apk)**
+
+[View all releases and checksums](https://github.com/gagancodeX/nova-browser/releases)
+
+Every successful Android build now publishes a GitHub Release with stable asset names:
+- `NOVA-TV-Browser.apk` — latest installable APK
+- `NOVA-TV-Browser.apk.sha256` — checksum for verifying the APK
+
+The version-specific GitHub Actions artifact is also uploaded for 30 days. [Open build workflow](https://github.com/gagancodeX/nova-browser/actions/workflows/build-native-apk.yml).
 
 ## Install on Xiaomi TV
 
-1. Copy `NOVA-TV-Browser-1.1.0.apk` to a USB drive.
+1. Copy `NOVA-TV-Browser.apk` to a USB drive.
 2. Connect the USB drive to the TV.
 3. Open the TV File Manager and select the APK.
 4. Allow the File Manager to install unknown apps if Android asks.
@@ -141,3 +150,11 @@ The native Android TV home screen has been redesigned with:
 - Cursor settings shortcut
 - Browser engine diagnostics
 - Clear browsing data action
+
+
+## Brand assets
+
+- Main scalable vector logo: [assets/nova-brand.svg](assets/nova-brand.svg)
+- Web edition logo asset: [web/assets/nova-brand.svg](web/assets/nova-brand.svg)
+
+The SVG logo is a scalable vector recreation based on the NOVA artwork. It is used for repository branding and can be reused in presentations, websites and promotional material.
