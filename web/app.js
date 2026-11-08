@@ -2,7 +2,7 @@
   "use strict";
   const $ = (id) => document.getElementById(id);
   const STORAGE = {bookmarks:"nova-bookmarks-v1",history:"nova-history-v1",settings:"nova-settings-v1"};
-  const defaults = {engine:"google",dark:true,reduceMotion:false,desktop:false};
+  const defaults = {engine:"google",dark:true,reduceMotion:false};
   let settings = {...defaults,...read(STORAGE.settings,{})};
   let bookmarks = read(STORAGE.bookmarks,[]);
   let historyItems = read(STORAGE.history,[]);
@@ -79,7 +79,6 @@
       $("pageFrame").src=url;setStatus("Loading "+cleanTitle(url));
       if(updateStatus){setTimeout(()=>{if(activeTab().url===url)setStatus(cleanTitle(url)+" · embedded view");},1200);}
     }
-    $("desktopModeBtn").setAttribute("aria-pressed",settings.desktop?"true":"false");
     $("pageFrame").style.width="100%";
   }
   function goBack(){
@@ -128,7 +127,7 @@
   $("newTabBtn").addEventListener("click",newTab);$("bookmarkCurrentBtn").addEventListener("click",()=>addBookmark());
   $("openExternalBtn").addEventListener("click",openFullSite);$("hintOpenExternalBtn").addEventListener("click",openFullSite);
   $("fullscreenBtn").addEventListener("click",fullScreen);
-  $("desktopModeBtn").addEventListener("click",()=>{settings.desktop=!settings.desktop;save(STORAGE.settings,settings);$("desktopModeBtn").setAttribute("aria-pressed",settings.desktop?"true":"false");toast("Desktop mode is a best-effort hint. Reload the site to apply its own responsive layout.");});
+  $("copyLinkBtn").addEventListener("click",async()=>{const url=activeTab().url;if(!url){toast("Open a website first.");return;}try{await navigator.clipboard.writeText(url);toast("Link copied.");}catch{setAddress(url);$("addressInput").focus();$("addressInput").select();toast("Select and copy the address above.");}});
   $("bookmarksLink").addEventListener("click",()=>openLibrary("bookmarks"));$("historyLink").addEventListener("click",()=>openLibrary("history"));
   $("videoLink").addEventListener("click",()=>{$("addressInput").focus();toast("Paste a direct MP4, WebM or Ogg video address.");});
   $("libraryBackBtn").addEventListener("click",()=>{const t=activeTab();t.url?renderPage(t.url,false):showView("home");});
