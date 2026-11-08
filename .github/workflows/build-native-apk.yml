@@ -1,4 +1,4 @@
-name: Build NOVA Android TV APK
+name: Build Android TV Browser APK
 
 on:
   push:
@@ -14,6 +14,11 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    env:
+      BROWSER_KEYSTORE_BASE64: ${{ secrets.NOVA_KEYSTORE_BASE64 }}
+      BROWSER_KEYSTORE_PASSWORD: ${{ secrets.NOVA_KEYSTORE_PASSWORD }}
+      BROWSER_KEY_ALIAS: ${{ secrets.NOVA_KEY_ALIAS }}
+      BROWSER_KEY_PASSWORD: ${{ secrets.NOVA_KEY_PASSWORD }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,76 +42,91 @@ jobs:
         with:
           gradle-version: "8.7"
 
-      - name: Compile debug variant
-        run: gradle --no-daemon -p android assembleDebug
-
-      - name: Decode stable NOVA release keystore
-        shell: bash
-        env:
-          NOVA_KEYSTORE_BASE64: ${{ secrets.NOVA_KEYSTORE_BASE64 }}
-          NOVA_KEYSTORE_PASSWORD: ${{ secrets.NOVA_KEYSTORE_PASSWORD }}
-          NOVA_KEY_ALIAS: ${{ secrets.NOVA_KEY_ALIAS }}
-          NOVA_KEY_PASSWORD: ${{ secrets.NOVA_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          for name in NOVA_KEYSTORE_BASE64 NOVA_KEYSTORE_PASSWORD NOVA_KEY_ALIAS NOVA_KEY_PASSWORD; do
-            if [[ -z "${!name:-}" ]]; then
-              echo "::error::Missing repository Actions secret: $name"
-              echo "Add the four NOVA signing secrets described in README.md, then rerun this workflow."
-              exit 1
-            fi
-          done
-          echo "$NOVA_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/nova-release.jks"
-          test -s "$RUNNER_TEMP/nova-release.jks"
-          echo "NOVA_KEYSTORE_PATH=$RUNNER_TEMP/nova-release.jks" >> "$GITHUB_ENV"
-          echo "NOVA_KEYSTORE_PASSWORD=$NOVA_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "NOVA_KEY_ALIAS=$NOVA_KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "NOVA_KEY_PASSWORD=$NOVA_KEY_PASSWORD" >> "$GITHUB_ENV"
-
-      - name: Build stable-signed release APK
-        run: gradle --no-daemon -p android assembleRelease
-
-      - name: Prepare versioned and stable APK assets
-        id: apk
+      - name: Read application version
+        id: version
         shell: bash
         run: |
           VERSION=$(sed -n "s/.*versionName '\\([^']*\\)'.*/\\1/p" android/app/build.gradle | head -n 1)
-          if [ -z "$VERSION" ]; then
-            echo "Could not read versionName from android/app/build.gradle"
-            exit 1
-          fi
+          test -n "$VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          cp android/app/build/outputs/apk/release/app-release.apk "NOVA-TV-Browser-$VERSION.apk"
-          sha256sum "NOVA-TV-Browser-$VERSION.apk" > "NOVA-TV-Browser-$VERSION.sha256"
-          cp "NOVA-TV-Browser-$VERSION.apk" "NOVA-TV-Browser.apk"
-          sha256sum "NOVA-TV-Browser.apk" > "NOVA-TV-Browser.apk.sha256"
 
-      - name: Upload versioned build artifact
+      - name: Compile development APK
+        run: gradle --no-daemon -p android assembleDebug
+
+      - name: Package development APK
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk "Android-TV-Browser-${{ steps.version.outputs.version }}-debug.apk"
+          sha256sum "Android-TV-Browser-${{ steps.version.outputs.version }}-debug.apk" > "Android-TV-Browser-${{ steps.version.outputs.version }}-debug.sha256"
+
+      - name: Upload development APK
         uses: actions/upload-artifact@v4
         with:
-          name: NOVA-TV-Browser-${{ steps.apk.outputs.version }}
+          name: Android-TV-Browser-${{ steps.version.outputs.version }}-debug
           path: |
-            NOVA-TV-Browser-${{ steps.apk.outputs.version }}.apk
-            NOVA-TV-Browser-${{ steps.apk.outputs.version }}.sha256
+            Android-TV-Browser-${{ steps.version.outputs.version }}-debug.apk
+            Android-TV-Browser-${{ steps.version.outputs.version }}-debug.sha256
           if-no-files-found: error
           retention-days: 30
 
+      - name: Decode stable signing key (optional)
+        if: ${{ env.BROWSER_KEYSTORE_BASE64 != '' && env.BROWSER_KEYSTORE_PASSWORD != '' && env.BROWSER_KEY_ALIAS != '' && env.BROWSER_KEY_PASSWORD != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "$BROWSER_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/browser-release.jks"
+          test -s "$RUNNER_TEMP/browser-release.jks"
+          keytool -list -keystore "$RUNNER_TEMP/browser-release.jks" -storepass "$BROWSER_KEYSTORE_PASSWORD" -alias "$BROWSER_KEY_ALIAS" >/dev/null
+          echo "NOVA_KEYSTORE_PATH=$RUNNER_TEMP/browser-release.jks" >> "$GITHUB_ENV"
+          echo "NOVA_KEYSTORE_PASSWORD=$BROWSER_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "NOVA_KEY_ALIAS=$BROWSER_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "NOVA_KEY_PASSWORD=$BROWSER_KEY_PASSWORD" >> "$GITHUB_ENV"
+
+      - name: Build stable-signed release APK
+        if: ${{ env.NOVA_KEYSTORE_PATH != '' }}
+        run: gradle --no-daemon -p android assembleRelease
+
+      - name: Package stable-signed release
+        if: ${{ env.NOVA_KEYSTORE_PATH != '' }}
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk "Android-TV-Browser-${{ steps.version.outputs.version }}.apk"
+          sha256sum "Android-TV-Browser-${{ steps.version.outputs.version }}.apk" > "Android-TV-Browser-${{ steps.version.outputs.version }}.sha256"
+          cp "Android-TV-Browser-${{ steps.version.outputs.version }}.apk" Android-TV-Browser.apk
+          sha256sum Android-TV-Browser.apk > Android-TV-Browser.apk.sha256
+
+      - name: Upload stable-signed APK
+        if: ${{ env.NOVA_KEYSTORE_PATH != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-TV-Browser-${{ steps.version.outputs.version }}-release
+          path: |
+            Android-TV-Browser-${{ steps.version.outputs.version }}.apk
+            Android-TV-Browser-${{ steps.version.outputs.version }}.sha256
+          if-no-files-found: error
+          retention-days: 90
+
       - name: Publish stable GitHub Release
+        if: ${{ env.NOVA_KEYSTORE_PATH != '' }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.apk.outputs.version }}
-          name: NOVA TV Browser v${{ steps.apk.outputs.version }}
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Android TV Browser v${{ steps.version.outputs.version }}
           target_commitish: main
           make_latest: true
           overwrite_files: true
           files: |
-            NOVA-TV-Browser.apk
-            NOVA-TV-Browser.apk.sha256
+            Android-TV-Browser.apk
+            Android-TV-Browser.apk.sha256
           body: |
-            Stable-signed installable NOVA TV Browser APK for Android TV.
+            Stable-signed Android TV browser APK.
 
-            In-app updates are supported from the NOVA Browser menu → Check for NOVA update.
-            Download NOVA-TV-Browser.apk for manual installation.
-            Check NOVA-TV-Browser.apk.sha256 to verify the download.
+            Download Android-TV-Browser.apk for installation.
+            In-app updates are available when the installed package has the same signing certificate.
+            Verify the download using Android-TV-Browser.apk.sha256.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Explain release signing status
+        if: ${{ env.NOVA_KEYSTORE_PATH == '' }}
+        run: |
+          echo "::notice::Debug APK is available as an Actions artifact."
+          echo "::notice::Stable-signed release skipped. Add the four repository signing secrets to enable in-app updates."
