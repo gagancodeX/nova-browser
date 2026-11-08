@@ -1,0 +1,11 @@
+# Local Android release-signing material must never be committed
+*.jks
+*.keystore
+*.base64
+*.p12
+*.pfx
+
+# Android build outputs
+.gradle/
+**/build/
+local.properties
