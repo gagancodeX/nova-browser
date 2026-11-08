@@ -1335,6 +1335,8 @@ public class MainActivity extends Activity {
         popup.getMenu().add("Browser engine info");
         popup.getMenu().add("Search engine: " + searchEngine);
         popup.getMenu().add("Pointer: " + (pointerEnabled ? "ON" : "OFF"));
+        popup.getMenu().add("Cursor settings");
+        popup.getMenu().add("Browser settings");
         popup.getMenu().add("New tab");
         popup.getMenu().add("Add bookmark");
         popup.getMenu().add("Bookmarks");
@@ -1356,6 +1358,8 @@ public class MainActivity extends Activity {
             else if ("Browser engine info".equals(value)) showEngineInfo();
             else if (value.startsWith("Search engine:")) cycleSearchEngine();
             else if (value.startsWith("Pointer:")) togglePointer();
+            else if ("Cursor settings".equals(value)) showCursorSettings();
+            else if ("Browser settings".equals(value)) showBrowserSettings();
             else if ("New tab".equals(value)) createTab(true);
             else if ("Add bookmark".equals(value)) addBookmark();
             else if ("Bookmarks".equals(value)) showBookmarks();
