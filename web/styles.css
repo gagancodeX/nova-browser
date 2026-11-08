@@ -41,3 +41,53 @@ body.light-theme .statusbar{background:#fff;color:#718097;border-color:#dce2ee}
 body.light-theme .status-divider{background:#dce2ee}
 body.light-theme .text-action{color:#6c5dd1}
 body.light-theme .section-kicker,body.light-theme .eyebrow{color:#7065a8}
+
+/* TV remote navigation */
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{
+  outline:4px solid #70d9e8!important;
+  outline-offset:4px!important;
+  box-shadow:0 0 0 7px rgba(112,217,232,.16),0 0 24px rgba(112,217,232,.22)!important;
+  position:relative;
+  z-index:5;
+}
+.shortcut-card:focus-visible,.small-btn:focus-visible,.icon-btn:focus-visible,.profile-btn:focus-visible{
+  transform:translateY(-2px);
+  border-color:#70d9e8!important;
+}
+.remote-hint{font-size:9px;letter-spacing:.75px;color:#95a4bd;white-space:nowrap}
+.tv-launch{
+  width:100%;height:100%;min-height:360px;
+  display:grid;place-items:center;padding:28px;
+  background:radial-gradient(ellipse at 50% 40%,rgba(135,117,235,.17),transparent 52%),#0d111b;
+}
+.tv-launch-card{
+  width:min(620px,100%);padding:36px 34px;text-align:center;
+  border:1px solid rgba(168,158,255,.25);border-radius:24px;
+  background:linear-gradient(145deg,rgba(27,34,52,.98),rgba(17,22,34,.98));
+  box-shadow:0 25px 85px rgba(0,0,0,.36);
+}
+.tv-launch-icon{
+  width:64px;height:64px;margin:0 auto 19px;border-radius:19px;
+  display:grid;place-items:center;font-size:30px;color:#11131d;
+  background:linear-gradient(135deg,#b7a7ff,#70d9e8);
+  box-shadow:0 10px 30px rgba(139,127,245,.25);
+}
+.tv-launch-card .section-kicker{display:block;margin-bottom:9px}
+.tv-launch-card h2{font:800 clamp(25px,3.3vw,36px)/1.15 Manrope,sans-serif;letter-spacing:-.8px;margin:0 0 12px}
+.tv-launch-card p{max-width:470px;margin:0 auto 23px;color:#aab6ce;font-size:14px;line-height:1.7}
+.tv-launch-card button{
+  min-height:48px;padding:0 22px;border:0;border-radius:12px;
+  background:linear-gradient(120deg,#b0a0ff,#70d9e8);color:#11131c;
+  font-size:13px;font-weight:800;
+}
+.tv-launch-card button span{font-size:16px;margin-left:9px}
+body.light-theme .tv-launch{background:radial-gradient(ellipse at 50% 40%,rgba(135,117,235,.12),transparent 52%),#eef2fa}
+body.light-theme .tv-launch-card{background:linear-gradient(145deg,#fff,#f6f8fd);border-color:#d8ddef;box-shadow:0 25px 75px rgba(35,47,76,.12)}
+body.light-theme .tv-launch-card h2{color:#1a2438}
+body.light-theme .tv-launch-card p{color:#62718a}
+body.light-theme .remote-hint{color:#63728b}
+@media(max-width:720px){
+ .remote-hint{display:none}
+ .tv-launch{padding:18px}
+ .tv-launch-card{padding:27px 19px}
+}
