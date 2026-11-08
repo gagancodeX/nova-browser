@@ -96,7 +96,16 @@
             <video id="videoPlayer" controls playsinline preload="metadata"></video>
             <div class="video-caption"><span>NOW PLAYING</span><strong id="videoTitle">Video</strong></div>
           </div>
-          <div class="embed-hint" id="embedHint">
+          <div class="tv-launch hidden" id="launchPanel">
+            <div class="tv-launch-card">
+              <span class="tv-launch-icon">↗</span>
+              <span class="section-kicker">FULL WEBSITE MODE</span>
+              <h2 id="launchTitle">Open this website</h2>
+              <p id="launchMessage">This website does not allow embedded viewing. Open it directly in the TV browser.</p>
+              <button id="launchOpenBtn">Open full website <span>↗</span></button>
+            </div>
+          </div>
+          <div class="embed-hint hidden" id="embedHint">
             <span class="hint-mark">↗</span>
             <span>Some websites don't allow embedded viewing.</span>
             <button id="hintOpenExternalBtn">Open this website</button>
@@ -123,7 +132,7 @@
 
     <footer class="statusbar">
       <div><span class="status-pip"></span><span id="footerStatus">NOVA is ready</span></div>
-      <div class="status-right"><span>TV MODE</span><span class="status-divider"></span><span id="clock">--:--</span></div>
+      <div class="status-right"><span class="remote-hint">REMOTE: ARROWS · OK · BACK</span><span class="status-divider"></span><span id="clock">--:--</span></div>
     </footer>
   </div>
 
