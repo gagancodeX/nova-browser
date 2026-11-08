@@ -60,6 +60,8 @@ public class MainActivity extends Activity {
     private int activeIndex = -1;
     private LinearLayout root, toolbar, tabsRow;
     private FrameLayout content;
+    private HorizontalScrollView tabScroll;
+    private String mode = "HOME";
     private EditText address;
     private TextView backButton, forwardButton, reloadButton;
     private ValueCallback<Uri[]> fileCallback;
@@ -69,6 +71,7 @@ public class MainActivity extends Activity {
     private boolean desktopMode = false;
     private String panelReturnMode = "HOME";
     private String pendingDownload;
+    private String pendingDownloadAgent, pendingDownloadDisposition, pendingDownloadMime;
     private SharedPreferences prefs;
 
     private static class Tab {
@@ -215,7 +218,7 @@ public class MainActivity extends Activity {
         toolbar.addView(menu, controlParams());
         menu.setOnClickListener(v -> showMenu(menu));
 
-        HorizontalScrollView tabScroll = new HorizontalScrollView(this);
+        tabScroll = new HorizontalScrollView(this);
         tabScroll.setHorizontalScrollBarEnabled(false);
         tabScroll.setBackgroundColor(Color.rgb(10, 15, 25));
         tabsRow = new LinearLayout(this);
@@ -453,6 +456,7 @@ public class MainActivity extends Activity {
     }
 
     private void showWebContent() {
+        mode = "BROWSER";
         content.removeAllViews();
         WebView web = activeWeb();
         if (web != null) {
@@ -464,6 +468,7 @@ public class MainActivity extends Activity {
     }
 
     private void showHome() {
+        mode = "HOME";
         content.removeAllViews();
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
@@ -731,6 +736,7 @@ public class MainActivity extends Activity {
     }
 
     private void showSavedPanel(String heading, JSONArray values) {
+        mode = "PANEL";
         panelReturnMode = activeWeb() != null && activeWeb().getUrl() != null ? "BROWSER" : "HOME";
         content.removeAllViews();
         LinearLayout panel = new LinearLayout(this);
@@ -810,6 +816,19 @@ public class MainActivity extends Activity {
             toast("Unsupported download link.");
             return;
         }
+        if (Build.VERSION.SDK_INT <= 28 &&
+                checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            pendingDownload = url;
+            pendingDownloadAgent = userAgent;
+            pendingDownloadDisposition = disposition;
+            pendingDownloadMime = mimeType;
+            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQ_STORAGE);
+            return;
+        }
+        queueDownload(url, userAgent, disposition, mimeType);
+    }
+
+    private void queueDownload(String url, String userAgent, String disposition, String mimeType) {
         String fileName = "download";
         if (disposition != null && disposition.contains("filename=")) {
             fileName = disposition.substring(disposition.indexOf("filename=") + 9).replace("\"", "").trim();
@@ -843,7 +862,7 @@ public class MainActivity extends Activity {
         customViewCallback = callback;
         toolbar.setVisibility(View.GONE);
         content.removeAllViews();
-        root.removeViewAt(1);
+        if (tabScroll.getParent() == root) root.removeView(tabScroll);
         content.addView(view, new FrameLayout.LayoutParams(-1, -1));
         enterImmersive();
     }
@@ -857,13 +876,7 @@ public class MainActivity extends Activity {
         customView = null;
         toolbar.setVisibility(View.VISIBLE);
         // Rebuild tab strip after fullscreen video exits.
-        if (tabsRow.getParent() == null) {
-            HorizontalScrollView strip = new HorizontalScrollView(this);
-            strip.setHorizontalScrollBarEnabled(false);
-            strip.setBackgroundColor(Color.rgb(10, 15, 25));
-            strip.addView(tabsRow);
-            root.addView(strip, 1, new LinearLayout.LayoutParams(-1, dp(42)));
-        }
+        if (tabScroll.getParent() == null) root.addView(tabScroll, 1, new LinearLayout.LayoutParams(-1, dp(42)));
         showWebContent();
         if (customViewCallback != null) {
             customViewCallback.onCustomViewHidden();
@@ -904,6 +917,19 @@ public class MainActivity extends Activity {
             return;
         }
         super.onBackPressed();
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_STORAGE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED && pendingDownload != null) {
+                queueDownload(pendingDownload, pendingDownloadAgent, pendingDownloadDisposition, pendingDownloadMime);
+            } else {
+                toast("Storage permission denied; download cancelled.");
+            }
+            pendingDownload = null;
+            pendingDownloadAgent = pendingDownloadDisposition = pendingDownloadMime = null;
+        }
     }
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
