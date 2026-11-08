@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" role="img" aria-labelledby="title desc">
+<title id="title">NOVA Browser — Browse Beyond</title>
+<desc id="desc">A luminous cyan and violet NOVA ribbon, surrounded by a glowing orbital ring, crown and cursor on a midnight starfield.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#020717"/><stop offset=".55" stop-color="#04091e"/><stop offset="1" stop-color="#01030d"/></linearGradient>
+ <radialGradient id="halo"><stop stop-color="#183dff" stop-opacity=".45"/><stop offset=".55" stop-color="#1528a7" stop-opacity=".16"/><stop offset="1" stop-color="#020718" stop-opacity="0"/></radialGradient>
+ <linearGradient id="n" x1=".08" y1="0" x2=".94" y2="1"><stop stop-color="#67edff"/><stop offset=".27" stop-color="#28baff"/><stop offset=".52" stop-color="#3158ff"/><stop offset=".76" stop-color="#782cff"/><stop offset="1" stop-color="#20cfff"/></linearGradient>
+ <linearGradient id="orbit" x1=".08" y1=".8" x2=".95" y2=".12"><stop stop-color="#f4a0ff"/><stop offset=".3" stop-color="#914bff"/><stop offset=".57" stop-color="#4869ff"/><stop offset=".82" stop-color="#53e8ff"/><stop offset="1" stop-color="#a3f8ff"/></linearGradient>
+ <linearGradient id="crown" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#fff"/><stop offset=".53" stop-color="#d9d5ff"/><stop offset="1" stop-color="#a65aff"/></linearGradient>
+ <linearGradient id="word" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff"/><stop offset=".75" stop-color="#e5ebff"/><stop offset="1" stop-color="#9bb4ff"/></linearGradient>
+ <linearGradient id="blueText"><stop stop-color="#3e9bff"/><stop offset=".5" stop-color="#8054ff"/><stop offset="1" stop-color="#36c9ff"/></linearGradient>
+ <linearGradient id="cloud" x1="0" y1="0" x2=".4" y2="1"><stop stop-color="#713cff" stop-opacity=".74"/><stop offset="1" stop-color="#160a58" stop-opacity=".05"/></linearGradient>
+ <linearGradient id="pill" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#151642" stop-opacity=".95"/><stop offset="1" stop-color="#100b36" stop-opacity=".85"/></linearGradient>
+ <filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="15" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+ <filter id="soft" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="1536" height="1024" fill="url(#bg)"/>
+<ellipse cx="768" cy="420" rx="640" ry="430" fill="url(#halo)"/>
+<g fill="#d9f5ff"><circle cx="180" cy="165" r="2"/><circle cx="388" cy="120" r="1.6"/><circle cx="566" cy="91" r="2"/><circle cx="976" cy="88" r="1.5"/><circle cx="1155" cy="147" r="1.5"/><circle cx="1287" cy="328" r="1.8"/><circle cx="1390" cy="224" r="1.3"/><circle cx="369" cy="422" r="1.5"/><circle cx="220" cy="670" r="1.6"/><circle cx="1320" cy="715" r="1.3"/></g>
+<g stroke="#b9eaff" stroke-width="2" opacity=".9" filter="url(#soft)"><path d="M565 78v35M547 95h36M385 395v29M370 409h30M1133 431v50M1108 456h50M977 77v22M966 88h22M1285 316v22M1274 327h22"/></g>
+<ellipse cx="768" cy="393" rx="548" ry="280" fill="none" stroke="#234bff" stroke-width="5" opacity=".16" filter="url(#glow)"/>
+<ellipse cx="768" cy="393" rx="548" ry="280" fill="none" stroke="url(#orbit)" stroke-width="3" opacity=".6"/>
+<!-- Ribbon N -->
+<path d="M475 583L542 290C553 239 592 218 639 232L692 247C718 255 739 270 759 293L895 454L876 568L728 393C704 365 679 337 649 304C628 281 605 267 585 276C573 282 568 297 564 314L505 578Z" fill="url(#n)" opacity=".28" filter="url(#glow)"/>
+<path d="M475 583L542 290C553 239 592 218 639 232L692 247C718 255 739 270 759 293L895 454L876 568L728 393C704 365 679 337 649 304C628 281 605 267 585 276C573 282 568 297 564 314L505 578Z" fill="url(#n)"/>
+<path d="M893 456L873 271C869 241 888 224 920 224H986C1018 224 1032 242 1028 272L1001 542C995 592 962 614 922 605C897 600 879 582 864 558L821 490L878 435Z" fill="url(#n)" filter="url(#soft)"/>
+<path d="M564 276C607 251 635 282 665 316L896 454" fill="none" stroke="#a8f7ff" stroke-width="5" opacity=".35"/>
+<!-- Orbit in front -->
+<path d="M345 564C473 504 633 469 808 417C1005 359 1160 285 1202 239C1237 201 1210 184 1153 198C1101 211 1053 235 1008 253" fill="none" stroke="#6a46ff" stroke-width="23" opacity=".32" filter="url(#glow)"/>
+<path d="M345 564C473 504 633 469 808 417C1005 359 1160 285 1202 239C1237 201 1210 184 1153 198C1101 211 1053 235 1008 253" fill="none" stroke="url(#orbit)" stroke-width="10" stroke-linecap="round" filter="url(#soft)"/>
+<path d="M345 564C473 504 633 469 808 417C1005 359 1160 285 1202 239C1237 201 1210 184 1153 198C1101 211 1053 235 1008 253" fill="none" stroke="#f3e5ff" stroke-width="2.5" opacity=".7"/>
+<path d="M1135 304v38M1116 323h38" stroke="#e9fbff" stroke-width="4" filter="url(#glow)"/>
+<!-- Crown -->
+<path d="M679 98L733 151Q757 175 779 150L766 70L792 30L817 71L802 151Q823 174 850 150L900 99L873 185Q846 206 768 207Q690 206 663 185Z" fill="url(#crown)" filter="url(#soft)"/>
+<path d="M699 191Q768 216 837 191L833 210Q768 236 703 210Z" fill="#9e5dff"/>
+<path d="M701 190Q768 214 835 190" fill="none" stroke="#fff" stroke-width="4" opacity=".85"/>
+<!-- Pointer mark -->
+<path d="M827 411L970 489L914 504L931 543L907 555L886 516L854 554Z" fill="#080d32" stroke="#090b35" stroke-width="18" stroke-linejoin="round"/>
+<path d="M827 411L970 489L914 504L931 543L907 555L886 516L854 554Z" fill="#fff" stroke="#e3efff" stroke-width="5" stroke-linejoin="round" filter="url(#soft)"/>
+<!-- Clouds -->
+<path d="M0 635C28 625 37 595 71 594C92 544 142 559 161 592C200 585 213 621 229 653C272 667 279 722 312 752V1024H0Z" fill="url(#cloud)" opacity=".72"/>
+<path d="M0 725C47 694 68 735 100 714C137 682 177 710 180 753C221 775 210 809 264 836V1024H0Z" fill="#210b68" opacity=".52"/>
+<path d="M1536 650C1495 622 1474 597 1445 604C1419 562 1366 576 1351 615C1307 606 1293 644 1279 678C1234 690 1228 747 1196 768V1024H1536Z" fill="url(#cloud)" opacity=".75"/>
+<path d="M1536 743C1487 709 1465 745 1433 725C1398 696 1356 729 1353 771C1314 791 1325 830 1270 855V1024H1536Z" fill="#210b68" opacity=".55"/>
+<!-- Wordmark -->
+<text x="768" y="758" text-anchor="middle" font-family="Montserrat,Poppins,Arial,sans-serif" font-size="144" font-weight="500" letter-spacing="17" fill="url(#word)">NOVA</text>
+<path d="M350 807H474M1062 807H1186" stroke="url(#blueText)" stroke-width="3" stroke-linecap="round"/>
+<text x="768" y="824" text-anchor="middle" font-family="Montserrat,Poppins,Arial,sans-serif" font-size="40" font-weight="500" letter-spacing="24" fill="url(#blueText)">BROWSER</text>
+<rect x="408" y="862" width="720" height="82" rx="41" fill="url(#pill)" stroke="#7447ff" stroke-width="2" filter="url(#soft)"/>
+<rect x="410" y="864" width="716" height="78" rx="39" fill="none" stroke="#a58aff" opacity=".5"/>
+<path d="M483 887l7 13 13 7-13 7-7 13-7-13-13-7 13-7zM1053 887l7 13 13 7-13 7-7 13-7-13-13-7 13-7z" fill="#fff" filter="url(#soft)"/>
+<text x="768" y="920" text-anchor="middle" font-family="Montserrat,Poppins,Arial,sans-serif" font-size="36" font-style="italic" letter-spacing="8" fill="#aaa5ff">Browse Beyond</text>
+</svg>
