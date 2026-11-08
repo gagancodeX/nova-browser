@@ -40,7 +40,17 @@
     if(settings.engine==="duckduckgo")return "https://duckduckgo.com/?q="+q;
     return "https://www.google.com/search?q="+q;
   }
-  function isDirectVideo(url){return /\.(mp4|webm|ogv|ogg|m4v)(\?.*)?$/i.test(url);}
+  function isYouTubeHost(url){
+    try{
+      const host=new URL(url).hostname.toLowerCase().replace(/\\.$/,"");
+      return host==="youtube.com"||host.endsWith(".youtube.com")||host==="youtu.be";
+    }catch{return false;}
+  }
+  function isYouTubeHome(url){
+    if(!isYouTubeHost(url))return false;
+    return !youtubeId(url);
+  }
+    function isDirectVideo(url){return /\.(mp4|webm|ogv|ogg|m4v)(\?.*)?$/i.test(url);}
   function youtubeId(url){try{const u=new URL(url);if(u.hostname.includes("youtu.be"))return u.pathname.slice(1);if(u.hostname.includes("youtube.com")){if(u.pathname==="/watch")return u.searchParams.get("v");const m=u.pathname.match(/\/(embed|shorts|live)\/([^/?]+)/);if(m)return m[2];}}catch{}return null;}
   function setAddress(url){$("addressInput").value=url||"";}
   function renderTabs(){
@@ -108,7 +118,15 @@
     if(isDirectVideo(url)){
       $("pageFrame").classList.add("hidden");$("videoStage").classList.remove("hidden");
       $("videoPlayer").src=url;$("videoTitle").textContent=cleanTitle(url);setStatus("Video ready");
+    }else if(isYouTubeHome(url)){
+      // The YouTube homepage refuses iframe embedding. Never request it in the iframe.
+      $("pageFrame").classList.add("hidden");
+      $("launchPanel").classList.remove("hidden");
+      $("launchTitle").textContent="Open YouTube directly";
+      $("launchMessage").textContent="YouTube blocks embedded viewing. Select the button below to open YouTube as a normal website in this TV browser.";
+      setStatus("YouTube requires full browser mode");
     }else if(yt){
+      // Individual videos can use YouTube's supported embed player.
       $("pageFrame").src="https://www.youtube-nocookie.com/embed/"+encodeURIComponent(yt)+"?autoplay=0&rel=0";
       setStatus("YouTube video player");
     }else if(requiresFullBrowser(url)){
@@ -131,8 +149,9 @@
   function openFullSite(){
     const url=activeTab().url;
     if(!url)return;
-    // A normal top-level navigation is more reliable on TV browsers than popup tabs.
-    window.location.assign(url);
+    // Navigate the top-level browsing context. This is essential for YouTube and
+    // other websites that send X-Frame-Options / frame-ancestors restrictions.
+    window.location.href=url;
   }
   function addBookmark(url=activeTab().url){
     if(!url){toast("Open a page before bookmarking it.");return;}
