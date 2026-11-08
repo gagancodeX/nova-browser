@@ -1,0 +1,14 @@
+{
+  "name": "NOVA TV Browser",
+  "short_name": "NOVA",
+  "description": "A TV-first browser-style web app.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#090b12",
+  "theme_color": "#090b12",
+  "icons": [
+    {"src": "./assets/nova.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+  ]
+}
