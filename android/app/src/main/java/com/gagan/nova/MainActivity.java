@@ -753,65 +753,400 @@ public class MainActivity extends Activity {
     private void showHome() {
         mode = "HOME";
         content.removeAllViews();
+
+        LinearLayout shell = new LinearLayout(this);
+        shell.setOrientation(LinearLayout.HORIZONTAL);
+        shell.setBackgroundColor(Color.rgb(8, 12, 22));
+        content.addView(shell, new FrameLayout.LayoutParams(-1, -1));
+
+        // Compact navigation rail, sized for TV remotes.
+        LinearLayout rail = new LinearLayout(this);
+        rail.setOrientation(LinearLayout.VERTICAL);
+        rail.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        rail.setPadding(dp(8), dp(16), dp(8), dp(12));
+        rail.setBackgroundColor(Color.rgb(11, 17, 30));
+        shell.addView(rail, new LinearLayout.LayoutParams(dp(68), -1));
+
+        TextView brand = label("N", 23, Color.rgb(10, 17, 28), true);
+        brand.setGravity(Gravity.CENTER);
+        brand.setBackground(rounded(Color.rgb(127, 207, 242), 15));
+        rail.addView(brand, new LinearLayout.LayoutParams(dp(42), dp(42)));
+        TextView brandCaption = label("NOVA", 9, Color.rgb(178, 190, 213), true);
+        brandCaption.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams bc = new LinearLayout.LayoutParams(-1, dp(24));
+        bc.bottomMargin = dp(14);
+        rail.addView(brandCaption, bc);
+
+        addRailButton(rail, "⌂", "Home", this::showHome, true);
+        addRailButton(rail, "☆", "Bookmarks", this::showBookmarks, false);
+        addRailButton(rail, "◷", "History", this::showHistory, false);
+        addRailButton(rail, "⇩", "Downloads", this::openDownloads, false);
+        addRailButton(rail, "＋", "New tab", () -> createTab(true), false);
+        View railSpacer = new View(this);
+        rail.addView(railSpacer, new LinearLayout.LayoutParams(1, 0, 1f));
+        addRailButton(rail, "⚙", "Browser tools", () -> showMenu(toolbar.getChildAt(toolbar.getChildCount() - 1)), false);
+
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
+        scroll.setClipToPadding(false);
+        shell.addView(scroll, new LinearLayout.LayoutParams(0, -1, 1f));
+
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setGravity(Gravity.CENTER_HORIZONTAL);
-        page.setPadding(dp(36), dp(25), dp(36), dp(22));
+        page.setPadding(dp(25), dp(20), dp(25), dp(26));
         scroll.addView(page);
 
-        TextView eyebrow = label("YOUR TV. YOUR WEB.", 11, Color.rgb(164, 151, 255), true);
-        eyebrow.setLetterSpacing(0.15f);
-        page.addView(eyebrow);
+        // Header / status row.
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        page.addView(head, new LinearLayout.LayoutParams(-1, dp(32)));
+        TextView heading = label("YOUR WEB, REIMAGINED", 10, Color.rgb(151, 164, 190), true);
+        heading.setLetterSpacing(0.16f);
+        head.addView(heading, new LinearLayout.LayoutParams(0, -2, 1f));
+        TextView modePill = label(desktopMode ? "▣ DESKTOP MODE" : "◈ TV MODE", 9, Color.rgb(181, 173, 255), true);
+        modePill.setGravity(Gravity.CENTER);
+        modePill.setPadding(dp(12), dp(7), dp(12), dp(7));
+        modePill.setBackground(rounded(Color.rgb(30, 31, 59), 20));
+        head.addView(modePill);
 
-        TextView title = label("Browse beyond the ordinary.", 29, Color.WHITE, true);
-        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-2, -2);
-        tp.topMargin = dp(7);
-        page.addView(title, tp);
+        TextView title = label("The internet looks better here.", 28, Color.WHITE, true);
+        title.setLetterSpacing(-0.025f);
+        LinearLayout.LayoutParams titleP = new LinearLayout.LayoutParams(-1, -2);
+        titleP.topMargin = dp(7);
+        page.addView(title, titleP);
 
-        TextView sub = label("Search the web, watch videos and open your favourite sites.", 14,
-                Color.rgb(165, 175, 194), false);
-        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-2, -2);
-        sp.topMargin = dp(7);
-        page.addView(sub, sp);
+        TextView subtitle = label("Search, stream and explore from your sofa.", 13,
+                Color.rgb(150, 163, 188), false);
+        LinearLayout.LayoutParams subP = new LinearLayout.LayoutParams(-1, -2);
+        subP.topMargin = dp(4);
+        page.addView(subtitle, subP);
 
-        TextView hint = label("Use the address bar above, or choose a shortcut.", 13,
-                Color.rgb(154, 166, 188), false);
-        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-2, -2);
-        hp.topMargin = dp(20);
-        page.addView(hint, hp);
+        // Search bar. It submits through the same navigation path as the browser address bar.
+        LinearLayout searchBar = new LinearLayout(this);
+        searchBar.setGravity(Gravity.CENTER_VERTICAL);
+        searchBar.setPadding(dp(14), 0, dp(7), 0);
+        searchBar.setBackground(focusBackground(Color.rgb(25, 39, 54), Color.rgb(50, 75, 108)));
+        LinearLayout.LayoutParams searchP = new LinearLayout.LayoutParams(-1, dp(54));
+        searchP.topMargin = dp(17);
+        page.addView(searchBar, searchP);
 
-        LinearLayout tiles = new LinearLayout(this);
-        tiles.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams tileParams = new LinearLayout.LayoutParams(-1, dp(92));
-        tileParams.topMargin = dp(15);
-        page.addView(tiles, tileParams);
-        addTile(tiles, "▶", "YouTube", "https://www.youtube.com/");
-        addTile(tiles, "G", "Google", "https://www.google.com/");
-        addTile(tiles, "N", "Netflix", "https://www.netflix.com/");
-        addTile(tiles, "P", "Prime Video", "https://www.primevideo.com/");
-        addTile(tiles, "W", "Wikipedia", "https://www.wikipedia.org/");
+        TextView searchIcon = label("⌕", 27, Color.rgb(140, 222, 228), true);
+        searchIcon.setGravity(Gravity.CENTER);
+        searchBar.addView(searchIcon, new LinearLayout.LayoutParams(dp(34), -1));
+        EditText homeSearch = new EditText(this);
+        homeSearch.setSingleLine(true);
+        homeSearch.setTextSize(15);
+        homeSearch.setTextColor(Color.WHITE);
+        homeSearch.setHintTextColor(Color.rgb(158, 176, 197));
+        homeSearch.setHint("Search anything or enter a website");
+        homeSearch.setSelectAllOnFocus(true);
+        homeSearch.setImeOptions(EditorInfo.IME_ACTION_GO);
+        homeSearch.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_AUTO_CORRECT);
+        homeSearch.setBackgroundColor(Color.TRANSPARENT);
+        homeSearch.setPadding(dp(5), 0, dp(5), 0);
+        searchBar.addView(homeSearch, new LinearLayout.LayoutParams(0, -1, 1f));
 
-        LinearLayout actions = new LinearLayout(this);
-        actions.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(-1, dp(50));
-        ap.topMargin = dp(18);
-        page.addView(actions, ap);
-        addAction(actions, "☆ Bookmarks", this::showBookmarks);
-        addAction(actions, "◷ History", this::showHistory);
-        addAction(actions, "⋮ Menu", () -> showMenu(toolbar.getChildAt(toolbar.getChildCount() - 1)));
+        TextView engine = label(searchEngine.toUpperCase(Locale.ROOT), 9, Color.rgb(182, 190, 213), true);
+        engine.setGravity(Gravity.CENTER);
+        engine.setPadding(dp(10), 0, dp(10), 0);
+        engine.setFocusable(true);
+        engine.setBackground(focusBackground(Color.rgb(35, 47, 64), Color.rgb(70, 68, 126)));
+        searchBar.addView(engine, new LinearLayout.LayoutParams(-2, dp(36)));
+        engine.setOnClickListener(v -> {
+            cycleSearchEngine();
+            engine.setText(searchEngine.toUpperCase(Locale.ROOT));
+        });
 
-        TextView note = label("NOVA TV BROWSER  •  ANDROID WEBVIEW  •  3 TABS MAX", 10,
-                Color.rgb(101, 115, 139), true);
-        LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(-2, -2);
-        np.topMargin = dp(22);
-        page.addView(note, np);
+        TextView go = label("GO  ›", 12, Color.rgb(12, 18, 29), true);
+        go.setGravity(Gravity.CENTER);
+        go.setPadding(dp(16), 0, dp(16), 0);
+        go.setBackground(rounded(Color.rgb(126, 206, 235), 11));
+        LinearLayout.LayoutParams goP = new LinearLayout.LayoutParams(-2, dp(38));
+        goP.leftMargin = dp(8);
+        searchBar.addView(go, goP);
+        Runnable submitSearch = () -> {
+            String query = homeSearch.getText().toString().trim();
+            if (query.isEmpty()) return;
+            InputMethodManager imm = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
+            if (imm != null) imm.hideSoftInputFromWindow(homeSearch.getWindowToken(), 0);
+            loadInActiveTab(query);
+        };
+        go.setFocusable(true);
+        go.setOnClickListener(v -> submitSearch.run());
+        homeSearch.setOnEditorActionListener((v, actionId, event) -> {
+            boolean enter = event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_UP;
+            if (actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_DONE || enter) {
+                submitSearch.run();
+                return true;
+            }
+            return false;
+        });
 
-        content.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
+        // Search engine and browser feature switches.
+        LinearLayout chips = new LinearLayout(this);
+        chips.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams chipP = new LinearLayout.LayoutParams(-1, dp(34));
+        chipP.topMargin = dp(8);
+        page.addView(chips, chipP);
+        addHomeChip(chips, "Search: " + searchEngine, () -> {
+            cycleSearchEngine();
+            showHome();
+        });
+        addHomeChip(chips, "Ad blocker " + (adBlockEnabled ? "ON" : "OFF"), () -> {
+            toggleAdBlocker();
+            showHome();
+        });
+        addHomeChip(chips, "Pointer " + (pointerEnabled ? "ON" : "OFF"), () -> {
+            togglePointer();
+            showHome();
+        });
+        addHomeChip(chips, "Browser tools", () -> showMenu(toolbar.getChildAt(toolbar.getChildCount() - 1)));
+
+        addHomeSectionTitle(page, "QUICK LAUNCH", "Your favourite places, one click away");
+        HorizontalScrollView quickScroll = new HorizontalScrollView(this);
+        quickScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout quickRow = new LinearLayout(this);
+        quickRow.setGravity(Gravity.CENTER_VERTICAL);
+        quickScroll.addView(quickRow);
+        LinearLayout.LayoutParams quickP = new LinearLayout.LayoutParams(-1, dp(112));
+        quickP.topMargin = dp(10);
+        page.addView(quickScroll, quickP);
+        addHomeSiteCard(quickRow, "▶", "YouTube", "Videos & creators", "https://www.youtube.com/", 0xFFFF414B);
+        addHomeSiteCard(quickRow, "G", "Google", "Search the web", "https://www.google.com/", 0xFF7CAEFF);
+        addHomeSiteCard(quickRow, "S", "Shorts", "Quick videos", "https://www.youtube.com/shorts/", 0xFFFF6B74);
+        addHomeSiteCard(quickRow, "N", "Netflix", "Movies & series", "https://www.netflix.com/", 0xFFE84B5B);
+        addHomeSiteCard(quickRow, "P", "Prime Video", "Films & originals", "https://www.primevideo.com/", 0xFF55BDEB);
+        addHomeSiteCard(quickRow, "J", "JioHotstar", "Sports & shows", "https://www.jiohotstar.com/", 0xFF9A83FF);
+        addHomeSiteCard(quickRow, "S", "Sony LIV", "Live & on demand", "https://www.sonyliv.com/", 0xFFB28BFF);
+        addHomeSiteCard(quickRow, "W", "Wikipedia", "Explore knowledge", "https://www.wikipedia.org/", 0xFFB9C9E8);
+
+        // Open tabs as resumable cards.
+        LinearLayout tabsHeader = addHomeSectionTitle(page, "PICK UP WHERE YOU LEFT OFF", "Open tabs");
+        TextView closeAll = label("CLOSE ALL", 9, Color.rgb(164, 172, 192), true);
+        closeAll.setGravity(Gravity.CENTER);
+        closeAll.setPadding(dp(10), dp(6), dp(10), dp(6));
+        closeAll.setBackground(rounded(Color.rgb(26, 33, 47), 9));
+        closeAll.setFocusable(true);
+        tabsHeader.addView(closeAll);
+        closeAll.setOnClickListener(v -> confirmCloseAllTabs());
+        HorizontalScrollView tabCardsScroll = new HorizontalScrollView(this);
+        tabCardsScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout tabCards = new LinearLayout(this);
+        tabCardsScroll.addView(tabCards);
+        LinearLayout.LayoutParams tabCardsP = new LinearLayout.LayoutParams(-1, dp(82));
+        tabCardsP.topMargin = dp(9);
+        page.addView(tabCardsScroll, tabCardsP);
+        for (int i = 0; i < tabs.size(); i++) {
+            final int index = i;
+            Tab tab = tabs.get(i);
+            String tabTitle = tab.title == null || tab.title.trim().isEmpty() ? "New tab" : tab.title;
+            String tabHost = tab.url == null || tab.url.isEmpty() ? "Start a new journey" : hostName(tab.url);
+            addHomeTabCard(tabCards, tabTitle, tabHost, i == activeIndex, () -> switchTab(index));
+        }
+        addHomeTabCard(tabCards, "＋ New tab", "Open another website", false, () -> createTab(true));
+
+        addHomeSectionTitle(page, "YOUR LIBRARY", "Everything you saved");
+        LinearLayout library = new LinearLayout(this);
+        library.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams libP = new LinearLayout.LayoutParams(-1, dp(76));
+        libP.topMargin = dp(9);
+        page.addView(library, libP);
+        addHomeLibraryCard(library, "☆", "Bookmarks", "Saved websites", this::showBookmarks);
+        addHomeLibraryCard(library, "◷", "History", "Recently visited", this::showHistory);
+        addHomeLibraryCard(library, "⇩", "Downloads", "Downloaded files", this::openDownloads);
+        addHomeLibraryCard(library, "⚙", "Settings", "Browser preferences", () -> showMenu(toolbar.getChildAt(toolbar.getChildCount() - 1)));
+
+        addHomeSectionTitle(page, "RECENTLY VISITED", "Jump back into a page");
+        addRecentHistory(page);
+
+        TextView footer = label("NOVA  •  BUILT FOR THE BIG SCREEN  •  " + (desktopMode ? "DESKTOP MODE" : "TV MODE"),
+                9, Color.rgb(99, 116, 143), true);
+        footer.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams footP = new LinearLayout.LayoutParams(-1, dp(30));
+        footP.topMargin = dp(15);
+        page.addView(footer, footP);
+
+        content.addView(shell, new FrameLayout.LayoutParams(-1, -1));
         if (!address.hasFocus()) address.setText("");
-        address.setHint("Search Google or enter website");
+        address.setHint("Search " + searchEngine + " or enter website");
         updateNavigationButtons();
+    }
+
+    private void addRailButton(LinearLayout rail, String icon, String description, Runnable action, boolean selected) {
+        TextView button = label(icon, 21, selected ? Color.rgb(13, 21, 32) : Color.rgb(160, 176, 201), true);
+        button.setGravity(Gravity.CENTER);
+        button.setFocusable(true);
+        button.setContentDescription(description);
+        button.setBackground(focusBackground(selected ? Color.rgb(112, 192, 222) : Color.TRANSPARENT, Color.rgb(64, 76, 126)));
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(dp(44), dp(43));
+        p.bottomMargin = dp(7);
+        rail.addView(button, p);
+        button.setOnClickListener(v -> action.run());
+    }
+
+    private void addHomeChip(LinearLayout row, String text, Runnable action) {
+        TextView chip = label(text, 9, Color.rgb(180, 192, 213), true);
+        chip.setGravity(Gravity.CENTER);
+        chip.setPadding(dp(10), 0, dp(10), 0);
+        chip.setFocusable(true);
+        chip.setBackground(focusBackground(Color.rgb(22, 30, 45), Color.rgb(63, 61, 115)));
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-2, dp(28));
+        p.rightMargin = dp(7);
+        row.addView(chip, p);
+        chip.setOnClickListener(v -> action.run());
+    }
+
+    private LinearLayout addHomeSectionTitle(LinearLayout parent, String title, String subtitle) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.BOTTOM | Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, dp(38));
+        p.topMargin = dp(18);
+        parent.addView(row, p);
+        LinearLayout words = new LinearLayout(this);
+        words.setOrientation(LinearLayout.VERTICAL);
+        row.addView(words, new LinearLayout.LayoutParams(0, -2, 1f));
+        TextView head = label(title, 10, Color.rgb(154, 169, 193), true);
+        head.setLetterSpacing(0.12f);
+        words.addView(head);
+        TextView sub = label(subtitle, 9, Color.rgb(104, 122, 150), false);
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2);
+        sp.topMargin = dp(3);
+        words.addView(sub, sp);
+        return row;
+    }
+
+    private void addHomeSiteCard(LinearLayout row, String mark, String name, String caption, String url, int accent) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(12), dp(8), dp(12), dp(8));
+        card.setFocusable(true);
+        card.setClickable(true);
+        card.setBackground(focusBackground(Color.rgb(20, 29, 45), Color.rgb(54, 63, 106)));
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(dp(126), dp(100));
+        p.rightMargin = dp(9);
+        row.addView(card, p);
+        TextView icon = label(mark, 22, Color.WHITE, true);
+        icon.setGravity(Gravity.CENTER);
+        icon.setBackground(rounded(accent, 12));
+        card.addView(icon, new LinearLayout.LayoutParams(dp(38), dp(38)));
+        TextView title = label(name, 11, Color.WHITE, true);
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, -2);
+        tp.topMargin = dp(7);
+        card.addView(title, tp);
+        TextView info = label(caption, 8, Color.rgb(137, 154, 180), false);
+        LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(-1, -2);
+        ip.topMargin = dp(2);
+        card.addView(info, ip);
+        card.setContentDescription("Open " + name);
+        card.setOnClickListener(v -> loadInActiveTab(url));
+    }
+
+    private void addHomeTabCard(LinearLayout row, String titleText, String detail, boolean active, Runnable action) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(13), dp(8), dp(13), dp(8));
+        card.setFocusable(true);
+        card.setBackground(focusBackground(active ? Color.rgb(33, 48, 68) : Color.rgb(19, 27, 41), Color.rgb(58, 65, 117)));
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(dp(190), dp(70));
+        p.rightMargin = dp(9);
+        row.addView(card, p);
+        TextView title = label((active ? "●  " : "") + shortTitle(titleText), 11, Color.WHITE, true);
+        title.setSingleLine(true);
+        title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        card.addView(title);
+        TextView host = label(detail, 9, Color.rgb(132, 151, 179), false);
+        host.setSingleLine(true);
+        host.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-1, -2);
+        hp.topMargin = dp(6);
+        card.addView(host, hp);
+        card.setOnClickListener(v -> action.run());
+    }
+
+    private void addHomeLibraryCard(LinearLayout row, String iconText, String titleText, String subtitleText, Runnable action) {
+        LinearLayout card = new LinearLayout(this);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(9), dp(8), dp(8), dp(8));
+        card.setFocusable(true);
+        card.setBackground(focusBackground(Color.rgb(19, 27, 42), Color.rgb(58, 64, 115)));
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(67), 1f);
+        p.rightMargin = dp(7);
+        row.addView(card, p);
+        TextView icon = label(iconText, 20, Color.rgb(156, 205, 227), true);
+        icon.setGravity(Gravity.CENTER);
+        card.addView(icon, new LinearLayout.LayoutParams(dp(29), dp(36)));
+        LinearLayout words = new LinearLayout(this);
+        words.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(0, -2, 1f);
+        wp.leftMargin = dp(7);
+        card.addView(words, wp);
+        words.addView(label(titleText, 10, Color.WHITE, true));
+        TextView sub = label(subtitleText, 8, Color.rgb(126, 145, 171), false);
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2);
+        sp.topMargin = dp(3);
+        words.addView(sub, sp);
+        card.setOnClickListener(v -> action.run());
+    }
+
+    private void addRecentHistory(LinearLayout parent) {
+        JSONArray recent = readArray("history");
+        if (recent.length() == 0) {
+            TextView empty = label("Your recently visited websites will appear here.", 10,
+                    Color.rgb(114, 132, 158), false);
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, dp(38));
+            p.topMargin = dp(8);
+            parent.addView(empty, p);
+            return;
+        }
+        int count = Math.min(4, recent.length());
+        for (int i = 0; i < count; i++) {
+            JSONObject item = recent.optJSONObject(i);
+            if (item == null) continue;
+            String url = item.optString("url");
+            String title = item.optString("title", hostName(url));
+            TextView entry = label("↗   " + shortTitle(title) + "     ·     " + hostName(url), 10,
+                    Color.rgb(181, 195, 216), true);
+            entry.setSingleLine(true);
+            entry.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            entry.setGravity(Gravity.CENTER_VERTICAL);
+            entry.setPadding(dp(11), 0, dp(11), 0);
+            entry.setFocusable(true);
+            entry.setBackground(focusBackground(Color.rgb(16, 23, 36), Color.rgb(54, 61, 107)));
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, dp(35));
+            p.topMargin = dp(4);
+            parent.addView(entry, p);
+            entry.setOnClickListener(v -> loadInActiveTab(url));
+        }
+    }
+
+    private void openDownloads() {
+        try {
+            startActivity(new Intent(DownloadManager.ACTION_VIEW_DOWNLOADS));
+        } catch (Exception e) {
+            toast("Downloads screen is not available on this TV.");
+        }
+    }
+
+    private void confirmCloseAllTabs() {
+        new AlertDialog.Builder(this)
+                .setTitle("Close all tabs?")
+                .setMessage("This will close all open websites and start a fresh tab.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Close all", (dialog, which) -> {
+                    for (Tab tab : new ArrayList<>(tabs)) {
+                        try {
+                            if (tab.web.getParent() != null) ((ViewGroup)tab.web.getParent()).removeView(tab.web);
+                            tab.web.stopLoading();
+                            tab.web.destroy();
+                        } catch (Exception ignored) { }
+                    }
+                    tabs.clear();
+                    activeIndex = -1;
+                    createTab(false);
+                })
+                .show();
     }
 
     private void addTile(LinearLayout row, String icon, String name, String url) {
