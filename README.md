@@ -170,7 +170,7 @@ This build wraps app initialization with a crash catcher. If startup fails, NOVA
 Fixed the duplicate `content.addView(shell)` call in the native home screen. The home shell is now attached to the content container exactly once, preventing the `IllegalStateException: The specified child already has a parent` crash on launch.
 
 
-## 1.4.7 website navigation, APK downloads and in-app updates
+## 1.4.8 website navigation, APK downloads and in-app updates
 
 - Google result links with `target=_blank` and JavaScript popups are normalized to same-tab navigation for older Android WebView builds.
 - Multi-window WebView popups are disabled to avoid detached blank tabs on Android 6.
@@ -180,9 +180,9 @@ Fixed the duplicate `content.addView(shell)` call in the native home screen. The
 - Completed APK downloads open the Android installer automatically.
 - Browser settings and home dashboard include Get Apps, APK Downloads and NOVA Update shortcuts.
 
-### Stable signing setup (required once before publishing 1.4.7)
+### Stable signing setup (required once before publishing 1.4.8)
 
-Android only permits in-place app updates when the new APK uses the same signing certificate as the installed APK. The previous 1.4.6 build was an automatically generated debug-signed build, so the new stable release key requires one final uninstall/reinstall. After 1.4.7 is installed, future releases use this same key and can be installed from inside NOVA without uninstalling or clearing app data.
+Android only permits in-place app updates when the new APK uses the same signing certificate as the installed APK. The installed 1.4.6 APK was generated with a temporary debug key, so the first stable-signed 1.4.8 APK requires one final uninstall/reinstall. After 1.4.8 is installed, future releases use this same key and can be installed from inside NOVA without uninstalling or clearing app data.
 
 To enable signed releases, add these four repository Actions secrets at:
 https://github.com/gagancodeX/nova-browser/settings/secrets/actions
@@ -193,3 +193,10 @@ https://github.com/gagancodeX/nova-browser/settings/secrets/actions
 - `NOVA_KEY_PASSWORD`
 
 The repository workflow intentionally stops before publishing a release if signing secrets are missing. Keep the keystore and its passwords private and backed up. Never commit the keystore or base64 contents to this public repository.
+
+
+## In-app APK downloads and updates
+
+Open **Home → Discover & Update** or **Menu → Get apps & APKs** to browse app catalogues. APK downloads are sent to Android Download Manager; when an APK finishes, NOVA opens the system package installer.
+
+Use **NOVA Update → Check for NOVA update** or **Menu → Check for NOVA update** to check the latest GitHub Release and download/install it directly on the TV. After the one-time stable-signed 1.4.8 install, future updates use the same private signing key and can be installed over the existing app, preserving NOVA's app data.
