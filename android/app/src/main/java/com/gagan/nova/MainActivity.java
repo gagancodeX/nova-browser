@@ -86,6 +86,7 @@ public class MainActivity extends Activity {
     private WebChromeClient.CustomViewCallback customViewCallback;
     private boolean fullscreen = false;
     private boolean desktopMode = false;
+    private String searchEngine = "Google";
     private boolean adBlockEnabled = false;
     private boolean pointerEnabled = true;
     private volatile Set<String> allowedAdHosts = new HashSet<>();
@@ -151,6 +152,7 @@ public class MainActivity extends Activity {
         enterImmersive();
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         desktopMode = prefs.getBoolean("desktop_mode", false);
+        searchEngine = prefs.getString("search_engine", "Google");
         adBlockEnabled = prefs.getBoolean("ad_block_enabled", false);
         pointerEnabled = prefs.getBoolean("pointer_enabled", true);
         allowedAdHosts = new HashSet<>(prefs.getStringSet("ad_allowlist", new HashSet<>()));
@@ -534,7 +536,10 @@ public class MainActivity extends Activity {
         if (q.matches("(?i)^[a-z][a-z0-9+.-]*://.*")) return q;
         if (q.matches("(?i)^([a-z0-9-]+\\.)+[a-z]{2,}(:[0-9]+)?(/[^ ]*)?$")) return "https://" + q;
         try {
-            return "https://www.google.com/search?q=" + URLEncoder.encode(q, "UTF-8");
+            String encoded = URLEncoder.encode(q, "UTF-8");
+            if ("Bing".equals(searchEngine)) return "https://www.bing.com/search?q=" + encoded;
+            if ("DuckDuckGo".equals(searchEngine)) return "https://duckduckgo.com/?q=" + encoded;
+            return "https://www.google.com/search?q=" + encoded;
         } catch (UnsupportedEncodingException e) {
             return GOOGLE_HOME;
         }
@@ -875,6 +880,7 @@ public class MainActivity extends Activity {
         if (anchor == null) anchor = toolbar.getChildAt(toolbar.getChildCount() - 1);
         PopupMenu popup = new PopupMenu(this, anchor);
         popup.getMenu().add("Focus address bar");
+        popup.getMenu().add("Search engine: " + searchEngine);
         popup.getMenu().add("Pointer: " + (pointerEnabled ? "ON" : "OFF"));
         popup.getMenu().add("New tab");
         popup.getMenu().add("Add bookmark");
@@ -894,6 +900,7 @@ public class MainActivity extends Activity {
         popup.setOnMenuItemClickListener(item -> {
             String value = item.getTitle().toString();
             if ("Focus address bar".equals(value)) focusAddress();
+            else if (value.startsWith("Search engine:")) cycleSearchEngine();
             else if (value.startsWith("Pointer:")) togglePointer();
             else if ("New tab".equals(value)) createTab(true);
             else if ("Add bookmark".equals(value)) addBookmark();
@@ -913,6 +920,14 @@ public class MainActivity extends Activity {
             return true;
         });
         popup.show();
+    }
+
+    private void cycleSearchEngine() {
+        if ("Google".equals(searchEngine)) searchEngine = "Bing";
+        else if ("Bing".equals(searchEngine)) searchEngine = "DuckDuckGo";
+        else searchEngine = "Google";
+        prefs.edit().putString("search_engine", searchEngine).apply();
+        toast("Search engine: " + searchEngine);
     }
 
     private void togglePointer() {
