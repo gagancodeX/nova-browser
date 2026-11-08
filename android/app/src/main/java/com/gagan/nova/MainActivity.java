@@ -589,7 +589,7 @@ public class MainActivity extends Activity {
             web.requestFocus();
             if (pointerView == null) pointerView = new PointerView(this);
             content.addView(pointerView, new FrameLayout.LayoutParams(-1, -1));
-            pointerView.setVisibility(View.VISIBLE);
+            pointerView.setVisibility(pointerEnabled ? View.VISIBLE : View.GONE);
             pointerView.bringToFront();
             pointerView.post(() -> {
                 if (!pointerInitialized && pointerView.getWidth() > 0 && pointerView.getHeight() > 0) {
@@ -659,7 +659,7 @@ public class MainActivity extends Activity {
     }
 
     private boolean handlePointerRemoteKey(KeyEvent event) {
-        if (!"BROWSER".equals(mode) || fullscreen || address.hasFocus()) return false;
+        if (!"BROWSER".equals(mode) || fullscreen || address.hasFocus() || !pointerEnabled) return false;
         int key = event.getKeyCode();
         if (key == KeyEvent.KEYCODE_DPAD_UP ||
                 key == KeyEvent.KEYCODE_DPAD_DOWN ||
@@ -939,6 +939,7 @@ public class MainActivity extends Activity {
         String host = Uri.parse(web.getUrl()).getHost();
         if (host == null) return;
         host = host.toLowerCase(Locale.ROOT);
+        if (host.startsWith("www.")) host = host.substring(4);
         Set<String> next = new HashSet<>(allowedAdHosts);
         if (next.contains(host)) {
             next.remove(host);
@@ -1240,7 +1241,9 @@ public class MainActivity extends Activity {
     }
 
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_UP && event.getKeyCode() == KeyEvent.KEYCODE_MENU) {
+        if (event.getAction() == KeyEvent.ACTION_UP &&
+                (event.getKeyCode() == KeyEvent.KEYCODE_MENU ||
+                 event.getKeyCode() == KeyEvent.KEYCODE_SETTINGS)) {
             showMenu(toolbar.getChildAt(toolbar.getChildCount() - 1));
             return true;
         }
