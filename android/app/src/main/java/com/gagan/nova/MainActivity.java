@@ -572,7 +572,9 @@ public class MainActivity extends Activity {
 
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (Build.VERSION.SDK_INT >= 23 && request.isForMainFrame() && view == activeWeb()) {
-                    toast("Page failed to load. Check connection, then press Reload.");
+                    String description = error == null ? "Unknown error" : error.getDescription().toString();
+                    int code = error == null ? 0 : error.getErrorCode();
+                    toast("Could not open " + hostName(request.getUrl().toString()) + " (" + code + "): " + description);
                 }
             }
         });
@@ -1127,6 +1129,16 @@ public class MainActivity extends Activity {
         addHomeLibraryCard(library, "⇩", "Downloads", "Downloaded files", this::openDownloads);
         addHomeLibraryCard(library, "⚙", "Settings", "Browser preferences", () -> showMenu(toolbar.getChildAt(toolbar.getChildCount() - 1)));
 
+        addHomeSectionTitle(page, "DISCOVER & UPDATE", "Download apps and keep NOVA current");
+        LinearLayout discover = new LinearLayout(this);
+        discover.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams discoverP = new LinearLayout.LayoutParams(-1, dp(76));
+        discoverP.topMargin = dp(9);
+        page.addView(discover, discoverP);
+        addHomeLibraryCard(discover, "＋", "Get Apps", "Browse app catalogues", this::showAppHub);
+        addHomeLibraryCard(discover, "↻", "NOVA Update", "Check latest version", this::checkForNovaUpdates);
+        addHomeLibraryCard(discover, "⇩", "APK Downloads", "Download and install", this::openDownloads);
+
         addHomeSectionTitle(page, "RECENTLY VISITED", "Jump back into a page");
         addRecentHistory(page);
 
@@ -1615,7 +1627,8 @@ public class MainActivity extends Activity {
                         }
                     }
                 }
-                final boolean available = !latest.isEmpty() && compareVersions(latest, current) > 0 && hasApk;
+                final boolean releaseHasApk = hasApk;
+                final boolean available = !latest.isEmpty() && compareVersions(latest, current) > 0 && releaseHasApk;
                 final String latestVersion = latest;
                 mainHandler.post(() -> {
                     if (available) {
@@ -1628,7 +1641,7 @@ public class MainActivity extends Activity {
                                 .show();
                     } else if (latestVersion.isEmpty()) {
                         toast("Could not read the latest NOVA release.");
-                    } else if (!hasApk) {
+                    } else if (!releaseHasApk) {
                         toast("Latest release has no NOVA APK asset.");
                     } else {
                         toast("NOVA is up to date (" + current + ").");
@@ -1955,6 +1968,14 @@ public class MainActivity extends Activity {
         settingHeading(panel, "Pointer appearance", "Customise cursor speed, size, shape and colour.");
         TextView cursor = settingButton("Open cursor settings", this::showCursorSettings);
         panel.addView(cursor, new LinearLayout.LayoutParams(-1, dp(42)));
+
+        settingHeading(panel, "Apps & updates", "Get apps and install NOVA updates from the TV.");
+        TextView apps = settingButton("Open Get Apps", this::showAppHub);
+        panel.addView(apps, new LinearLayout.LayoutParams(-1, dp(42)));
+        TextView update = settingButton("Check for NOVA update", this::checkForNovaUpdates);
+        LinearLayout.LayoutParams updateP = new LinearLayout.LayoutParams(-1, dp(42));
+        updateP.topMargin = dp(6);
+        panel.addView(update, updateP);
 
         settingHeading(panel, "Diagnostics", "Check the Android and Chromium/WebView versions.");
         TextView engine = settingButton("Browser engine information", this::showEngineInfo);
