@@ -157,18 +157,31 @@ public class MainActivity extends Activity {
             fill.setShadowLayer(4, 0, 2, 0x99000000);
 
             if ("Crosshair".equals(pointerShape)) {
-                canvas.drawCircle(0, 0, 10, outline);
-                canvas.drawLine(-17, 0, -5, 0, outline);
-                canvas.drawLine(5, 0, 17, 0, outline);
-                canvas.drawLine(0, -17, 0, -5, outline);
-                canvas.drawLine(0, 5, 0, 17, outline);
-                canvas.drawCircle(0, 0, 3, fill);
-            } else if ("Ring".equals(pointerShape)) {
+                outline.setStrokeWidth(4.5f / scale);
+                canvas.drawCircle(0, 0, 11, outline);
+                canvas.drawLine(-18, 0, -5, 0, outline);
+                canvas.drawLine(5, 0, 18, 0, outline);
+                canvas.drawLine(0, -18, 0, -5, outline);
+                canvas.drawLine(0, 5, 0, 18, outline);
+                fill.setColor(pointerColor);
                 fill.setStyle(Paint.Style.STROKE);
-                fill.setStrokeWidth(3.5f / scale);
-                canvas.drawCircle(0, 0, 12, fill);
+                fill.setStrokeWidth(2.5f / scale);
+                canvas.drawCircle(0, 0, 11, fill);
+                canvas.drawLine(-18, 0, -5, 0, fill);
+                canvas.drawLine(5, 0, 18, 0, fill);
+                canvas.drawLine(0, -18, 0, -5, fill);
+                canvas.drawLine(0, 5, 0, 18, fill);
                 fill.setStyle(Paint.Style.FILL);
-                canvas.drawCircle(0, 0, 2.5f, fill);
+                canvas.drawCircle(0, 0, 3.2f, fill);
+            } else if ("Ring".equals(pointerShape)) {
+                outline.setStrokeWidth(6f / scale);
+                canvas.drawCircle(0, 0, 13, outline);
+                fill.setColor(pointerColor);
+                fill.setStyle(Paint.Style.STROKE);
+                fill.setStrokeWidth(3.2f / scale);
+                canvas.drawCircle(0, 0, 13, fill);
+                fill.setStyle(Paint.Style.FILL);
+                canvas.drawCircle(0, 0, 3.2f, fill);
             } else {
                 arrow.reset();
                 arrow.moveTo(0, 0);
