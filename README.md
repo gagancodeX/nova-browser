@@ -108,3 +108,15 @@ Android 6 is outside current Chromium WebView support. Google documents that And
 The **Menu → Browser engine info** screen now also lists CPU ABIs and links to the Android 6-compatible Google WebView release page. It does not install WebView automatically. Android only accepts a package update if its package name, signing certificate and device firmware provider configuration are compatible.
 
 For Android 6, the last Google WebView branch listed for API 23 is 105.0.5195.136. This is legacy and may still be rejected by current websites such as YouTube.
+
+
+## 1.4.3 home dashboard
+
+The native Android TV home screen has been redesigned with:
+- Left TV navigation rail
+- Search field with Google/Bing/DuckDuckGo cycling
+- TV-friendly quick launch carousel
+- Current open tabs with direct resume and close-all action
+- Bookmarks, history, downloads and browser tools shortcuts
+- Recent browsing history list
+- Quick status chips for TV/Desktop mode, ad blocker and pointer
