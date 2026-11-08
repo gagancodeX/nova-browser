@@ -10,8 +10,8 @@ android {
         applicationId 'com.gagan.nova'
         minSdk 23
         targetSdk 28
-        versionCode 11
-        versionName '1.4.6'
+        versionCode 12
+        versionName '1.4.7'
     }
 
     compileOptions {
@@ -19,11 +19,25 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+    signingConfigs {
+        release {
+            def keyPath = System.getenv("NOVA_KEYSTORE_PATH")
+            if (keyPath == null || keyPath.trim().isEmpty()) {
+                throw new GradleException("NOVA_KEYSTORE_PATH is required for a stable signed release.")
+            }
+            storeFile file(keyPath)
+            storePassword System.getenv("NOVA_KEYSTORE_PASSWORD")
+            keyAlias System.getenv("NOVA_KEY_ALIAS")
+            keyPassword System.getenv("NOVA_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         debug {
             debuggable true
         }
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
         }
     }
