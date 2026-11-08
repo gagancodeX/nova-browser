@@ -1524,7 +1524,8 @@ public class MainActivity extends Activity {
                 });
 
         settingHeading(panel, "Cursor shape", "Arrow, crosshair or ring.");
-        TextView shape = settingButton("Selected: " + pointerShape + "   ▾", () -> {
+        final TextView[] shapeRef = new TextView[1];
+        shapeRef[0] = settingButton("Selected: " + pointerShape + "   ▾", () -> {
             String[] options = {"Arrow", "Crosshair", "Ring"};
             int index = Math.max(0, java.util.Arrays.asList(options).indexOf(pointerShape));
             new AlertDialog.Builder(this).setTitle("Cursor shape")
@@ -1532,14 +1533,15 @@ public class MainActivity extends Activity {
                         pointerShape = options[which];
                         prefs.edit().putString("pointer_shape", pointerShape).apply();
                         dialog.dismiss();
-                        shape.setText("Selected: " + pointerShape + "   ▾");
+                        if (shapeRef[0] != null) shapeRef[0].setText("Selected: " + pointerShape + "   ▾");
                         if (pointerView != null) pointerView.invalidate();
                     }).setNegativeButton("Cancel", null).show();
         });
-        panel.addView(shape, new LinearLayout.LayoutParams(-1, dp(42)));
+        panel.addView(shapeRef[0], new LinearLayout.LayoutParams(-1, dp(42)));
 
         settingHeading(panel, "Cursor colour", "Choose a high-contrast colour.");
-        TextView colour = settingButton("Selected: " + pointerColorName(pointerColor) + "   ▾", () -> {
+        final TextView[] colourRef = new TextView[1];
+        colourRef[0] = settingButton("Selected: " + pointerColorName(pointerColor) + "   ▾", () -> {
             String[] names = {"White", "Cyan", "Yellow", "Lime", "Magenta", "Orange"};
             int[] colors = {Color.WHITE, Color.rgb(74, 225, 239), Color.rgb(255, 224, 72),
                     Color.rgb(126, 245, 135), Color.rgb(255, 105, 210), Color.rgb(255, 164, 71)};
@@ -1550,11 +1552,11 @@ public class MainActivity extends Activity {
                         pointerColor = colors[which];
                         prefs.edit().putInt("pointer_color", pointerColor).apply();
                         dialog.dismiss();
-                        colour.setText("Selected: " + names[which] + "   ▾");
+                        if (colourRef[0] != null) colourRef[0].setText("Selected: " + names[which] + "   ▾");
                         if (pointerView != null) pointerView.invalidate();
                     }).setNegativeButton("Cancel", null).show();
         });
-        panel.addView(colour, new LinearLayout.LayoutParams(-1, dp(42)));
+        panel.addView(colourRef[0], new LinearLayout.LayoutParams(-1, dp(42)));
 
         TextView centre = settingButton("Reset pointer to centre", this::resetPointerPosition);
         LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, dp(42));
@@ -1624,7 +1626,8 @@ public class MainActivity extends Activity {
                 });
 
         settingHeading(panel, "Search provider", "Choose the provider used for searches.");
-        TextView search = settingButton("Selected: " + searchEngine + "   ▾", () -> {
+        final TextView[] searchRef = new TextView[1];
+        searchRef[0] = settingButton("Selected: " + searchEngine + "   ▾", () -> {
             String[] options = {"Google", "Bing", "DuckDuckGo"};
             int index = Math.max(0, java.util.Arrays.asList(options).indexOf(searchEngine));
             new AlertDialog.Builder(this).setTitle("Search provider")
@@ -1632,10 +1635,10 @@ public class MainActivity extends Activity {
                         searchEngine = options[which];
                         prefs.edit().putString("search_engine", searchEngine).apply();
                         dialog.dismiss();
-                        search.setText("Selected: " + searchEngine + "   ▾");
+                        if (searchRef[0] != null) searchRef[0].setText("Selected: " + searchEngine + "   ▾");
                     }).setNegativeButton("Cancel", null).show();
         });
-        panel.addView(search, new LinearLayout.LayoutParams(-1, dp(42)));
+        panel.addView(searchRef[0], new LinearLayout.LayoutParams(-1, dp(42)));
 
         settingHeading(panel, "Pointer appearance", "Customise cursor speed, size, shape and colour.");
         TextView cursor = settingButton("Open cursor settings", this::showCursorSettings);
