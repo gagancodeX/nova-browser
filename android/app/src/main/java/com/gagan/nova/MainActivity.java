@@ -461,23 +461,72 @@ public class MainActivity extends Activity {
         return web;
     }
 
+    private String chromeVersionFrom(String userAgent) {
+        if (userAgent == null) return "unknown";
+        Matcher matcher = Pattern.compile("Chrome/([0-9.]+)").matcher(userAgent);
+        return matcher.find() ? matcher.group(1) : "unknown";
+    }
+
     private void applyUserAgent(WebSettings settings) {
-        String base = settings.getUserAgentString();
-        String chrome = "120.0.0.0";
-        if (base != null) {
-            Matcher matcher = Pattern.compile("Chrome/([0-9.]+)").matcher(base);
-            if (matcher.find()) chrome = matcher.group(1);
-        }
+        String actual = settings.getUserAgentString();
+        if (actual == null || actual.trim().isEmpty()) return;
+
+        // Keep the real Android release and the actual installed Chromium/WebView version.
+        // Never claim Android 9 or a newer Chrome build on an Android 6 device.
+        String cleanActual = actual.replace("; wv)", ")").replace("Version/4.0 ", "");
         if (desktopMode) {
-            settings.setUserAgentString("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + chrome + " Safari/537.36");
+            String chrome = chromeVersionFrom(actual);
+            if (!"unknown".equals(chrome)) {
+                settings.setUserAgentString("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + chrome + " Safari/537.36");
+            } else {
+                settings.setUserAgentString(cleanActual);
+            }
             settings.setLoadWithOverviewMode(false);
             settings.setTextZoom(100);
         } else {
-            settings.setUserAgentString("Mozilla/5.0 (Linux; Android 9; Android TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + chrome + " Safari/537.36");
+            settings.setUserAgentString(cleanActual);
             settings.setLoadWithOverviewMode(true);
             settings.setTextZoom(110);
         }
         settings.setUseWideViewPort(true);
+    }
+
+    private String webViewProviderInfo() {
+        String[] candidates = {"com.google.android.webview", "com.android.webview", "com.android.chrome"};
+        for (String packageName : candidates) {
+            try {
+                android.content.pm.PackageInfo info = getPackageManager().getPackageInfo(packageName, 0);
+                String version = info.versionName == null ? "version unknown" : info.versionName;
+                return packageName + " (" + version + ")";
+            } catch (PackageManager.NameNotFoundException ignored) { }
+        }
+        return "System WebView provider package not identified";
+    }
+
+    private void showEngineInfo() {
+        WebView web = activeWeb();
+        String ua = web == null ? "" : web.getSettings().getUserAgentString();
+        String chrome = chromeVersionFrom(ua);
+        String androidVersion = Build.VERSION.RELEASE == null ? "unknown" : Build.VERSION.RELEASE;
+        String message = "Android version: " + androidVersion +
+                " (API " + Build.VERSION.SDK_INT + ")\\n" +
+                "WebView provider: " + webViewProviderInfo() + "\\n" +
+                "Chromium in user-agent: " + chrome + "\\n\\n" +
+                "NOVA uses the browser engine installed by the TV. Updating NOVA cannot upgrade that engine.";
+        new AlertDialog.Builder(this)
+                .setTitle("NOVA browser engine")
+                .setMessage(message)
+                .setPositiveButton("Open WebView in Play Store", (dialog, which) -> {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_VIEW,
+                                Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.webview"));
+                        startActivity(intent);
+                    } catch (Exception e) {
+                        toast("Play Store is not available on this TV.");
+                    }
+                })
+                .setNegativeButton("Close", null)
+                .show();
     }
 
     private boolean hostMatches(String host, String domain) {
@@ -886,6 +935,7 @@ public class MainActivity extends Activity {
         if (anchor == null) anchor = toolbar.getChildAt(toolbar.getChildCount() - 1);
         PopupMenu popup = new PopupMenu(this, anchor);
         popup.getMenu().add("Focus address bar");
+        popup.getMenu().add("Browser engine info");
         popup.getMenu().add("Search engine: " + searchEngine);
         popup.getMenu().add("Pointer: " + (pointerEnabled ? "ON" : "OFF"));
         popup.getMenu().add("New tab");
@@ -906,6 +956,7 @@ public class MainActivity extends Activity {
         popup.setOnMenuItemClickListener(item -> {
             String value = item.getTitle().toString();
             if ("Focus address bar".equals(value)) focusAddress();
+            else if ("Browser engine info".equals(value)) showEngineInfo();
             else if (value.startsWith("Search engine:")) cycleSearchEngine();
             else if (value.startsWith("Pointer:")) togglePointer();
             else if ("New tab".equals(value)) createTab(true);
