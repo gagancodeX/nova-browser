@@ -91,3 +91,12 @@ body.light-theme .remote-hint{color:#63728b}
  .tv-launch{padding:18px}
  .tv-launch-card{padding:27px 19px}
 }
+
+.home-links .native-app-link{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:34px;padding:0 13px;border-radius:9px;
+  border:1px solid rgba(112,205,235,.28);
+  color:#91d9ef;text-decoration:none;font-size:11px;font-weight:700;
+  background:rgba(48,104,144,.12);
+}
+.home-links .native-app-link:focus-visible{outline:3px solid #79d7f0;outline-offset:3px;}
