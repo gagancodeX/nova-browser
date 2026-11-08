@@ -1388,6 +1388,265 @@ public class MainActivity extends Activity {
         toast("Search engine: " + searchEngine);
     }
 
+
+    private interface IntSettingListener {
+        void onChanged(int value);
+    }
+
+    private TextView settingText(String value, int size, int color, boolean bold) {
+        TextView t = label(value, size, color, bold);
+        t.setGravity(Gravity.CENTER_VERTICAL);
+        return t;
+    }
+
+    private void settingHeading(LinearLayout parent, String title, String subtitle) {
+        TextView h = settingText(title, 13, Color.WHITE, true);
+        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-1, -2);
+        hp.topMargin = dp(13);
+        parent.addView(h, hp);
+        TextView sub = settingText(subtitle, 9, Color.rgb(147, 164, 190), false);
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2);
+        sp.topMargin = dp(3);
+        parent.addView(sub, sp);
+    }
+
+    private void settingSwitch(LinearLayout parent, String title, String subtitle,
+                               boolean checked, CompoundButton.OnCheckedChangeListener listener) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, dp(54));
+        rp.topMargin = dp(5);
+        parent.addView(row, rp);
+        LinearLayout words = new LinearLayout(this);
+        words.setOrientation(LinearLayout.VERTICAL);
+        row.addView(words, new LinearLayout.LayoutParams(0, -2, 1f));
+        words.addView(settingText(title, 12, Color.WHITE, true));
+        TextView sub = settingText(subtitle, 9, Color.rgb(147, 164, 190), false);
+        words.addView(sub);
+        Switch toggle = new Switch(this);
+        toggle.setChecked(checked);
+        toggle.setFocusable(true);
+        row.addView(toggle, new LinearLayout.LayoutParams(-2, -2));
+        toggle.setOnCheckedChangeListener(listener);
+    }
+
+    private TextView settingButton(String text, Runnable action) {
+        TextView b = label(text, 11, Color.WHITE, true);
+        b.setGravity(Gravity.CENTER);
+        b.setPadding(dp(10), dp(6), dp(10), dp(6));
+        b.setFocusable(true);
+        b.setBackground(focusBackground(Color.rgb(31, 43, 63), Color.rgb(68, 68, 132)));
+        b.setOnClickListener(v -> action.run());
+        return b;
+    }
+
+    private void settingSeekBar(LinearLayout parent, String title, String detail,
+                                int min, int max, int current, IntSettingListener listener) {
+        settingHeading(parent, title, detail);
+        TextView value = settingText(current + " dp", 10, Color.rgb(123, 218, 234), true);
+        LinearLayout.LayoutParams vp = new LinearLayout.LayoutParams(-1, -2);
+        vp.topMargin = dp(4);
+        parent.addView(value, vp);
+        SeekBar seek = new SeekBar(this);
+        seek.setMax(max - min);
+        seek.setProgress(Math.max(0, Math.min(max - min, current - min)));
+        seek.setFocusable(true);
+        parent.addView(seek, new LinearLayout.LayoutParams(-1, dp(40)));
+        seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                int actual = min + progress;
+                value.setText(actual + (title.toLowerCase(Locale.ROOT).contains("speed") ? " dp / press" : " dp"));
+                if (fromUser) listener.onChanged(actual);
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) { }
+            @Override public void onStopTrackingTouch(SeekBar bar) { }
+        });
+    }
+
+    private String pointerColorName(int color) {
+        if (color == Color.rgb(74, 225, 239)) return "Cyan";
+        if (color == Color.rgb(255, 224, 72)) return "Yellow";
+        if (color == Color.rgb(126, 245, 135)) return "Lime";
+        if (color == Color.rgb(255, 105, 210)) return "Magenta";
+        if (color == Color.rgb(255, 164, 71)) return "Orange";
+        return "White";
+    }
+
+    private void showCursorSettings() {
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(20), dp(8), dp(20), dp(14));
+        panel.setBackgroundColor(Color.rgb(14, 21, 35));
+        scroll.addView(panel);
+
+        TextView intro = settingText("Set pointer size, speed and appearance for your viewing distance.", 10, Color.rgb(154, 171, 196), false);
+        panel.addView(intro);
+
+        settingSwitch(panel, "Show pointer", "Enable the visible remote-controlled cursor.", pointerEnabled,
+                (button, checked) -> {
+                    pointerEnabled = checked;
+                    prefs.edit().putBoolean("pointer_enabled", checked).apply();
+                    if (pointerView != null) pointerView.setVisibility(checked ? View.VISIBLE : View.GONE);
+                });
+
+        settingSeekBar(panel, "Movement speed", "Distance moved for each arrow-key press.", 5, 40, pointerSpeedDp, value -> {
+            pointerSpeedDp = value;
+            prefs.edit().putInt("pointer_speed_dp", value).apply();
+        });
+
+        settingSeekBar(panel, "Cursor size", "Increase the pointer to make it easier to see.", 24, 60, pointerSizeDp, value -> {
+            pointerSizeDp = value;
+            prefs.edit().putInt("pointer_size_dp", value).apply();
+            clampPointer();
+            if (pointerView != null) pointerView.invalidate();
+        });
+
+        settingSwitch(panel, "Dark outline", "Improves visibility over bright websites.", pointerOutlineEnabled,
+                (button, checked) -> {
+                    pointerOutlineEnabled = checked;
+                    prefs.edit().putBoolean("pointer_outline", checked).apply();
+                    if (pointerView != null) pointerView.invalidate();
+                });
+
+        settingHeading(panel, "Cursor shape", "Arrow, crosshair or ring.");
+        TextView shape = settingButton("Selected: " + pointerShape + "   ▾", () -> {
+            String[] options = {"Arrow", "Crosshair", "Ring"};
+            int index = Math.max(0, java.util.Arrays.asList(options).indexOf(pointerShape));
+            new AlertDialog.Builder(this).setTitle("Cursor shape")
+                    .setSingleChoiceItems(options, index, (dialog, which) -> {
+                        pointerShape = options[which];
+                        prefs.edit().putString("pointer_shape", pointerShape).apply();
+                        dialog.dismiss();
+                        shape.setText("Selected: " + pointerShape + "   ▾");
+                        if (pointerView != null) pointerView.invalidate();
+                    }).setNegativeButton("Cancel", null).show();
+        });
+        panel.addView(shape, new LinearLayout.LayoutParams(-1, dp(42)));
+
+        settingHeading(panel, "Cursor colour", "Choose a high-contrast colour.");
+        TextView colour = settingButton("Selected: " + pointerColorName(pointerColor) + "   ▾", () -> {
+            String[] names = {"White", "Cyan", "Yellow", "Lime", "Magenta", "Orange"};
+            int[] colors = {Color.WHITE, Color.rgb(74, 225, 239), Color.rgb(255, 224, 72),
+                    Color.rgb(126, 245, 135), Color.rgb(255, 105, 210), Color.rgb(255, 164, 71)};
+            int index = 0;
+            for (int i = 0; i < colors.length; i++) if (colors[i] == pointerColor) index = i;
+            new AlertDialog.Builder(this).setTitle("Cursor colour")
+                    .setSingleChoiceItems(names, index, (dialog, which) -> {
+                        pointerColor = colors[which];
+                        prefs.edit().putInt("pointer_color", pointerColor).apply();
+                        dialog.dismiss();
+                        colour.setText("Selected: " + names[which] + "   ▾");
+                        if (pointerView != null) pointerView.invalidate();
+                    }).setNegativeButton("Cancel", null).show();
+        });
+        panel.addView(colour, new LinearLayout.LayoutParams(-1, dp(42)));
+
+        TextView centre = settingButton("Reset pointer to centre", this::resetPointerPosition);
+        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, dp(42));
+        cp.topMargin = dp(13);
+        panel.addView(centre, cp);
+
+        TextView defaults = settingButton("Restore cursor defaults", () -> {
+            pointerEnabled = true;
+            pointerSpeedDp = 18;
+            pointerSizeDp = 36;
+            pointerColor = Color.WHITE;
+            pointerShape = "Arrow";
+            pointerOutlineEnabled = true;
+            prefs.edit().putBoolean("pointer_enabled", true)
+                    .putInt("pointer_speed_dp", 18)
+                    .putInt("pointer_size_dp", 36)
+                    .putInt("pointer_color", Color.WHITE)
+                    .putString("pointer_shape", "Arrow")
+                    .putBoolean("pointer_outline", true).apply();
+            if (pointerView != null) {
+                pointerView.setVisibility(View.VISIBLE);
+                pointerView.invalidate();
+            }
+            toast("Cursor defaults restored. Reopen settings to refresh the controls.");
+        });
+        LinearLayout.LayoutParams dpDefault = new LinearLayout.LayoutParams(-1, dp(42));
+        dpDefault.topMargin = dp(7);
+        panel.addView(defaults, dpDefault);
+
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("NOVA · Cursor settings")
+                .setView(scroll).setPositiveButton("Done", null).show();
+        dialog.getWindow().setLayout(Math.min(getResources().getDisplayMetrics().widthPixels - dp(60), dp(620)),
+                Math.min(getResources().getDisplayMetrics().heightPixels - dp(60), dp(650)));
+    }
+
+    private void showBrowserSettings() {
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(20), dp(8), dp(20), dp(14));
+        panel.setBackgroundColor(Color.rgb(14, 21, 35));
+        scroll.addView(panel);
+
+        settingSwitch(panel, "Ad blocker", "Block requests to selected common ad networks.", adBlockEnabled,
+                (button, checked) -> {
+                    adBlockEnabled = checked;
+                    prefs.edit().putBoolean("ad_block_enabled", checked).apply();
+                    WebView web = activeWeb();
+                    if (web != null && web.getUrl() != null) web.reload();
+                });
+
+        settingSwitch(panel, "Desktop site mode", "Request desktop layouts from websites.", desktopMode,
+                (button, checked) -> {
+                    desktopMode = checked;
+                    prefs.edit().putBoolean("desktop_mode", checked).apply();
+                    for (Tab tab : tabs) {
+                        applyUserAgent(tab.web.getSettings());
+                        if (tab.web.getUrl() != null) tab.web.reload();
+                    }
+                });
+
+        settingSwitch(panel, "Remote pointer", "Arrow keys move the cursor; OK clicks.", pointerEnabled,
+                (button, checked) -> {
+                    pointerEnabled = checked;
+                    prefs.edit().putBoolean("pointer_enabled", checked).apply();
+                    if (pointerView != null) pointerView.setVisibility(checked ? View.VISIBLE : View.GONE);
+                });
+
+        settingHeading(panel, "Search provider", "Choose the provider used for searches.");
+        TextView search = settingButton("Selected: " + searchEngine + "   ▾", () -> {
+            String[] options = {"Google", "Bing", "DuckDuckGo"};
+            int index = Math.max(0, java.util.Arrays.asList(options).indexOf(searchEngine));
+            new AlertDialog.Builder(this).setTitle("Search provider")
+                    .setSingleChoiceItems(options, index, (dialog, which) -> {
+                        searchEngine = options[which];
+                        prefs.edit().putString("search_engine", searchEngine).apply();
+                        dialog.dismiss();
+                        search.setText("Selected: " + searchEngine + "   ▾");
+                    }).setNegativeButton("Cancel", null).show();
+        });
+        panel.addView(search, new LinearLayout.LayoutParams(-1, dp(42)));
+
+        settingHeading(panel, "Pointer appearance", "Customise cursor speed, size, shape and colour.");
+        TextView cursor = settingButton("Open cursor settings", this::showCursorSettings);
+        panel.addView(cursor, new LinearLayout.LayoutParams(-1, dp(42)));
+
+        settingHeading(panel, "Diagnostics", "Check the Android and Chromium/WebView versions.");
+        TextView engine = settingButton("Browser engine information", this::showEngineInfo);
+        panel.addView(engine, new LinearLayout.LayoutParams(-1, dp(42)));
+
+        TextView clear = settingButton("Clear browsing data", () -> new AlertDialog.Builder(this)
+                .setTitle("Clear browsing data?")
+                .setMessage("This removes cookies, cache, history and bookmarks.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Clear", (dialog, which) -> clearData()).show());
+        LinearLayout.LayoutParams clearP = new LinearLayout.LayoutParams(-1, dp(42));
+        clearP.topMargin = dp(14);
+        panel.addView(clear, clearP);
+
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("NOVA · Browser settings")
+                .setView(scroll).setPositiveButton("Done", null).show();
+        dialog.getWindow().setLayout(Math.min(getResources().getDisplayMetrics().widthPixels - dp(60), dp(620)),
+                Math.min(getResources().getDisplayMetrics().heightPixels - dp(60), dp(650)));
+    }
+
     private void togglePointer() {
         pointerEnabled = !pointerEnabled;
         prefs.edit().putBoolean("pointer_enabled", pointerEnabled).apply();
