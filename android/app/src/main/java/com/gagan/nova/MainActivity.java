@@ -1215,6 +1215,8 @@ public class MainActivity extends Activity {
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
             if (userAgent != null) request.addRequestHeader("User-Agent", userAgent);
+            String cookie = CookieManager.getInstance().getCookie(url);
+            if (cookie != null) request.addRequestHeader("Cookie", cookie);
             if (mimeType != null) request.setMimeType(mimeType);
             ((DownloadManager)getSystemService(DOWNLOAD_SERVICE)).enqueue(request);
             toast("Download started. Check Downloads.");
