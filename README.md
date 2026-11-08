@@ -84,3 +84,11 @@ While a website is open:
 The ad blocker is a lightweight hostname filter, not a full extension engine or a regularly updated EasyList/uBlock filter engine. Some websites can break when blocking is enabled; turn it off or allow ads for that site if needed.
 
 HTML5 playback depends on the video format, codec, DRM and Android System WebView version installed on the TV. The browser cannot guarantee playback on every streaming site.
+
+
+### 1.4.0 notes
+
+- TV and Desktop site modes use the installed WebView's Chromium version in their user-agent strings.
+- New-window website links are handled by real WebView tabs.
+- Ad allowlisting now exempts third-party ad requests while visiting the allowed site.
+- Downloads include the site's current session cookies.
