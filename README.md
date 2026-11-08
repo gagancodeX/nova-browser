@@ -163,3 +163,8 @@ The SVG logo is a scalable vector recreation based on the NOVA artwork. It is us
 ## 1.4.5 startup diagnostics
 
 This build wraps app initialization with a crash catcher. If startup fails, NOVA displays the exception and offers a **Copy error details** action instead of returning silently to the launcher. Send that diagnostic text or a clear photo to identify the exact device-specific cause.
+
+
+## 1.4.6 startup fix
+
+Fixed the duplicate `content.addView(shell)` call in the native home screen. The home shell is now attached to the content container exactly once, preventing the `IllegalStateException: The specified child already has a parent` crash on launch.
