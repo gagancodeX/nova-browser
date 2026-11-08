@@ -5,6 +5,8 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
+import android.content.IntentFilter;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -20,6 +22,8 @@ import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Environment;
 import android.os.SystemClock;
 import android.view.Gravity;
@@ -56,8 +60,12 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -72,6 +80,8 @@ public class MainActivity extends Activity {
     private static final int REQ_STORAGE = 410;
     private static final String PREFS = "nova_tv_browser";
     private static final String GOOGLE_HOME = "https://www.google.com/";
+    private static final String LATEST_RELEASE_API = "https://api.github.com/repos/gagancodeX/nova-browser/releases/latest";
+    private static final String LATEST_APK_URL = "https://github.com/gagancodeX/nova-browser/releases/latest/download/NOVA-TV-Browser.apk";
 
     private final ArrayList<Tab> tabs = new ArrayList<>();
     private int activeIndex = -1;
@@ -102,6 +112,16 @@ public class MainActivity extends Activity {
     private String pendingDownload;
     private String pendingDownloadAgent, pendingDownloadDisposition, pendingDownloadMime;
     private SharedPreferences prefs;
+    private Handler mainHandler;
+    private boolean downloadReceiverRegistered = false;
+    private final BroadcastReceiver downloadCompleteReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if (!DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(intent.getAction())) return;
+            long completedId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L);
+            long pendingId = prefs == null ? -1L : prefs.getLong("pending_apk_install_id", -1L);
+            if (completedId == pendingId && completedId != -1L) handleCompletedApkDownload(completedId);
+        }
+    };
 
     private static class Tab {
         final WebView web;
@@ -231,9 +251,12 @@ public class MainActivity extends Activity {
         pointerOutlineEnabled = prefs.getBoolean("pointer_outline", true);
         Set<String> savedAllowed = prefs.getStringSet("ad_allowlist", new HashSet<>());
         allowedAdHosts = savedAllowed == null ? new HashSet<>() : new HashSet<>(savedAllowed);
+        mainHandler = new Handler(Looper.getMainLooper());
+        registerDownloadReceiver();
         buildShell();
         createTab(false);
         showHome();
+        checkPendingApkDownload();
     }
 
     private void showStartupFailure(Throwable error) {
@@ -463,8 +486,11 @@ public class MainActivity extends Activity {
         s.setDatabaseEnabled(true);
         s.setLoadsImagesAutomatically(true);
         s.setBlockNetworkImage(false);
-        s.setJavaScriptCanOpenWindowsAutomatically(true);
-        s.setSupportMultipleWindows(true);
+        // Keep target=_blank result links inside the current tab. A legacy Android 6
+        // WebView may report blank-target popups inconsistently; the page-finished
+        // normalizer below converts those links to same-tab navigation.
+        s.setJavaScriptCanOpenWindowsAutomatically(false);
+        s.setSupportMultipleWindows(false);
         s.setMediaPlaybackRequiresUserGesture(true);
         s.setTextZoom(desktopMode ? 100 : 110);
         web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
@@ -515,14 +541,35 @@ public class MainActivity extends Activity {
                     else tab.title = hostName(url);
                     saveHistory(url, tab.title);
                 }
-                // Expose native HTML5 controls when a site's player supports them.
-                view.evaluateJavascript("(function(){document.querySelectorAll('video').forEach(function(v){v.setAttribute('controls','controls');v.setAttribute('playsinline','');v.style.maxWidth='100%';});})();", null);
+                // Normalize external result links and popup links to same-tab navigation.
+                // This prevents older Android 6 WebView builds from creating a blank popup
+                // whose URL changes while the Google results page remains visible.
+                view.evaluateJavascript("(function(){try{" +
+                        "document.querySelectorAll('a[target=_blank],a[target=_new]').forEach(function(a){a.setAttribute('target','_self');});" +
+                        "document.addEventListener('click',function(e){var n=e.target;while(n&&n.tagName!=='A')n=n.parentElement;if(n&&(n.target==='_blank'||n.target==='_new'))n.target='_self';},true);" +
+                        "window.open=function(u){if(u){window.location.href=u;}return window;};" +
+                        "document.querySelectorAll('video').forEach(function(v){v.setAttribute('controls','controls');v.setAttribute('playsinline','');v.style.maxWidth='100%';});" +
+                        "}catch(e){}})();", null);
                 if (view == activeWeb()) {
                     if (!address.hasFocus()) address.setText(url);
                     updateNavigationButtons();
                     refreshTabs();
                 }
             }
+            @Override public void onReceivedHttpError(WebView view, WebResourceRequest request,
+                                                        android.webkit.WebResourceResponse response) {
+                if (request.isForMainFrame() && view == activeWeb() && response != null &&
+                        response.getStatusCode() >= 400) {
+                    toast("Website returned HTTP " + response.getStatusCode() + ". URL: " + hostName(view.getUrl()));
+                }
+            }
+
+            @Override public void onReceivedSslError(WebView view, android.webkit.SslErrorHandler handler,
+                                                     android.net.http.SslError error) {
+                handler.cancel();
+                if (view == activeWeb()) toast("Secure connection failed on this TV. Website certificate/TLS may be unsupported.");
+            }
+
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (Build.VERSION.SDK_INT >= 23 && request.isForMainFrame() && view == activeWeb()) {
                     toast("Page failed to load. Check connection, then press Reload.");
@@ -547,21 +594,10 @@ public class MainActivity extends Activity {
             }
             @Override public boolean onCreateWindow(WebView view, boolean dialog, boolean userGesture,
                                                     android.os.Message resultMsg) {
-                if (tabs.size() >= MAX_TABS) {
-                    toast("Close a tab before opening another website.");
-                    return false;
-                }
-                // Many search results use target=_blank; create an actual browser tab for them.
-                WebView newWeb = createWebView();
-                Tab newTab = new Tab(newWeb);
-                tabs.add(newTab);
-                activeIndex = tabs.size() - 1;
-                refreshTabs();
-                showWebContent();
-                WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
-                transport.setWebView(newWeb);
-                resultMsg.sendToTarget();
-                return true;
+                // Multi-window is disabled. If a legacy WebView still asks for a popup,
+                // do not create a detached WebView; the page's target links are normalized
+                // to same-tab navigation on page finish.
+                return false;
             }
             @Override public void onPermissionRequest(PermissionRequest request) {
                 request.deny();
@@ -750,6 +786,7 @@ public class MainActivity extends Activity {
         tab.title = hostName(url);
         address.setText(url);
         showWebContent();
+        tab.web.stopLoading();
         tab.web.loadUrl(url);
         refreshTabs();
         updateNavigationButtons();
@@ -1413,6 +1450,8 @@ public class MainActivity extends Activity {
         popup.getMenu().add("Cursor settings");
         popup.getMenu().add("Browser settings");
         popup.getMenu().add("New tab");
+        popup.getMenu().add("Get apps & APKs");
+        popup.getMenu().add("Check for NOVA update");
         popup.getMenu().add("Add bookmark");
         popup.getMenu().add("Bookmarks");
         popup.getMenu().add("History");
@@ -1436,6 +1475,8 @@ public class MainActivity extends Activity {
             else if ("Cursor settings".equals(value)) showCursorSettings();
             else if ("Browser settings".equals(value)) showBrowserSettings();
             else if ("New tab".equals(value)) createTab(true);
+            else if ("Get apps & APKs".equals(value)) showAppHub();
+            else if ("Check for NOVA update".equals(value)) checkForNovaUpdates();
             else if ("Add bookmark".equals(value)) addBookmark();
             else if ("Bookmarks".equals(value)) showBookmarks();
             else if ("History".equals(value)) showHistory();
@@ -1463,6 +1504,215 @@ public class MainActivity extends Activity {
         toast("Search engine: " + searchEngine);
     }
 
+
+    private void showAppHub() {
+        mode = "PANEL";
+        panelReturnMode = activeWeb() != null && activeWeb().getUrl() != null ? "BROWSER" : "HOME";
+        content.removeAllViews();
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(26), dp(20), dp(26), dp(22));
+        panel.setBackgroundColor(Color.rgb(9, 14, 25));
+        scroll.addView(panel);
+
+        TextView eyebrow = label("NOVA DISCOVER", 10, Color.rgb(146, 160, 191), true);
+        panel.addView(eyebrow);
+        TextView title = label("Get apps for your TV.", 26, Color.WHITE, true);
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, -2);
+        tp.topMargin = dp(5);
+        panel.addView(title, tp);
+        TextView desc = label("Browse app catalogues and download APK files. NOVA can pass APK downloads to Android's installer.", 11,
+                Color.rgb(150, 166, 190), false);
+        LinearLayout.LayoutParams dp1 = new LinearLayout.LayoutParams(-1, -2);
+        dp1.topMargin = dp(6);
+        panel.addView(desc, dp1);
+
+        LinearLayout row1 = new LinearLayout(this);
+        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, dp(82));
+        rp.topMargin = dp(19);
+        panel.addView(row1, rp);
+        addHomeLibraryCard(row1, "F", "F-Droid", "Open app catalogue", () -> loadInActiveTab("https://f-droid.org/en/"));
+        addHomeLibraryCard(row1, "A", "APKMirror", "Browse APK releases", () -> loadInActiveTab("https://www.apkmirror.com/"));
+        addHomeLibraryCard(row1, "G", "GitHub", "Developer releases", () -> loadInActiveTab("https://github.com/"));
+
+        LinearLayout row2 = new LinearLayout(this);
+        LinearLayout.LayoutParams r2p = new LinearLayout.LayoutParams(-1, dp(82));
+        r2p.topMargin = dp(10);
+        panel.addView(row2, r2p);
+        addHomeLibraryCard(row2, "↓", "Downloads", "Open downloaded files", this::openDownloads);
+        addHomeLibraryCard(row2, "↻", "NOVA update", "Check latest version", this::checkForNovaUpdates);
+        addHomeLibraryCard(row2, "⌂", "Home", "Back to dashboard", this::showHome);
+
+        TextView note = label("APK downloads are handled by Android Download Manager. When an APK finishes, NOVA opens the system installer. Install prompts and unknown-app permissions are controlled by Android.", 10,
+                Color.rgb(125, 143, 169), false);
+        LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(-1, -2);
+        np.topMargin = dp(18);
+        panel.addView(note, np);
+
+        content.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
+    }
+
+    private String installedVersionName() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception e) {
+            return "0.0.0";
+        }
+    }
+
+    private int compareVersions(String a, String b) {
+        String[] left = a.replaceFirst("^[vV]", "").split("\\.");
+        String[] right = b.replaceFirst("^[vV]", "").split("\\.");
+        int length = Math.max(left.length, right.length);
+        for (int i = 0; i < length; i++) {
+            int x = i < left.length ? parseVersionPart(left[i]) : 0;
+            int y = i < right.length ? parseVersionPart(right[i]) : 0;
+            if (x != y) return Integer.compare(x, y);
+        }
+        return 0;
+    }
+
+    private int parseVersionPart(String value) {
+        String digits = value.replaceAll("[^0-9].*$", "");
+        try { return digits.isEmpty() ? 0 : Integer.parseInt(digits); }
+        catch (Exception e) { return 0; }
+    }
+
+    private void checkForNovaUpdates() {
+        toast("Checking NOVA releases…");
+        new Thread(() -> {
+            HttpURLConnection connection = null;
+            try {
+                URL url = new URL(LATEST_RELEASE_API);
+                connection = (HttpURLConnection)url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(12000);
+                connection.setReadTimeout(12000);
+                connection.setRequestProperty("Accept", "application/vnd.github+json");
+                connection.setRequestProperty("User-Agent", "NOVA-TV-Browser");
+                int code = connection.getResponseCode();
+                if (code < 200 || code >= 300) throw new IllegalStateException("GitHub returned HTTP " + code);
+                StringBuilder body = new StringBuilder();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"));
+                String line;
+                while ((line = reader.readLine()) != null) body.append(line);
+                reader.close();
+                JSONObject release = new JSONObject(body.toString());
+                String tag = release.optString("tag_name", "");
+                String latest = tag.replaceFirst("^[vV]", "");
+                String current = installedVersionName();
+                JSONArray assets = release.optJSONArray("assets");
+                boolean hasApk = false;
+                if (assets != null) {
+                    for (int i = 0; i < assets.length(); i++) {
+                        JSONObject asset = assets.optJSONObject(i);
+                        if (asset != null && "NOVA-TV-Browser.apk".equals(asset.optString("name"))) {
+                            hasApk = true;
+                            break;
+                        }
+                    }
+                }
+                final boolean available = !latest.isEmpty() && compareVersions(latest, current) > 0 && hasApk;
+                final String latestVersion = latest;
+                mainHandler.post(() -> {
+                    if (available) {
+                        new AlertDialog.Builder(this)
+                                .setTitle("NOVA update available")
+                                .setMessage("Installed: " + current + "\\nLatest: " + latestVersion +
+                                        "\\n\\nDownload and install the update? Your bookmarks and settings remain in place if the APK signature matches.")
+                                .setPositiveButton("Download & install", (dialog, which) -> downloadNovaUpdate())
+                                .setNegativeButton("Later", null)
+                                .show();
+                    } else if (latestVersion.isEmpty()) {
+                        toast("Could not read the latest NOVA release.");
+                    } else if (!hasApk) {
+                        toast("Latest release has no NOVA APK asset.");
+                    } else {
+                        toast("NOVA is up to date (" + current + ").");
+                    }
+                });
+            } catch (Exception error) {
+                mainHandler.post(() -> new AlertDialog.Builder(this)
+                        .setTitle("Update check failed")
+                        .setMessage("Could not reach GitHub from this TV. You can still open the latest APK page in NOVA.\\n\\n" + error.getMessage())
+                        .setPositiveButton("Open releases", (d, w) -> loadInActiveTab("https://github.com/gagancodeX/nova-browser/releases/latest"))
+                        .setNegativeButton("Close", null).show());
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+        }).start();
+    }
+
+    private void downloadNovaUpdate() {
+        startDownload(LATEST_APK_URL, null, "filename=NOVA-TV-Browser-update.apk",
+                "application/vnd.android.package-archive");
+    }
+
+    private void registerDownloadReceiver() {
+        if (downloadReceiverRegistered) return;
+        try {
+            registerReceiver(downloadCompleteReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+            downloadReceiverRegistered = true;
+        } catch (Exception e) {
+            toast("Download notifications unavailable.");
+        }
+    }
+
+    private void checkPendingApkDownload() {
+        if (prefs == null) return;
+        long id = prefs.getLong("pending_apk_install_id", -1L);
+        if (id == -1L) return;
+        DownloadManager manager = (DownloadManager)getSystemService(DOWNLOAD_SERVICE);
+        if (manager == null) return;
+        DownloadManager.Query query = new DownloadManager.Query().setFilterById(id);
+        android.database.Cursor cursor = null;
+        try {
+            cursor = manager.query(query);
+            if (cursor != null && cursor.moveToFirst()) {
+                int status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS));
+                if (status == DownloadManager.STATUS_SUCCESSFUL) handleCompletedApkDownload(id);
+                else if (status == DownloadManager.STATUS_FAILED) prefs.edit().remove("pending_apk_install_id").apply();
+            }
+        } catch (Exception ignored) {
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+    }
+
+    private void handleCompletedApkDownload(long id) {
+        DownloadManager manager = (DownloadManager)getSystemService(DOWNLOAD_SERVICE);
+        if (manager == null) return;
+        Uri apkUri = manager.getUriForDownloadedFile(id);
+        if (apkUri == null) {
+            toast("APK download failed. Check Downloads.");
+            prefs.edit().remove("pending_apk_install_id").apply();
+            return;
+        }
+        prefs.edit().remove("pending_apk_install_id").apply();
+        if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
+            toast("Allow NOVA to install apps, then open Downloads and select the APK.");
+            try {
+                Intent settings = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:" + getPackageName()));
+                startActivity(settings);
+            } catch (Exception e) {
+                openDownloads();
+            }
+            return;
+        }
+        try {
+            Intent install = new Intent(Intent.ACTION_VIEW);
+            install.setDataAndType(apkUri, "application/vnd.android.package-archive");
+            install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(install);
+        } catch (Exception e) {
+            toast("Could not open Android installer. Open Downloads and select the APK.");
+            openDownloads();
+        }
+    }
 
     private interface IntSettingListener {
         void onChanged(int value);
@@ -2007,8 +2257,15 @@ public class MainActivity extends Activity {
             String cookie = CookieManager.getInstance().getCookie(url);
             if (cookie != null) request.addRequestHeader("Cookie", cookie);
             if (mimeType != null) request.setMimeType(mimeType);
-            ((DownloadManager)getSystemService(DOWNLOAD_SERVICE)).enqueue(request);
-            toast("Download started. Check Downloads.");
+            DownloadManager manager = (DownloadManager)getSystemService(DOWNLOAD_SERVICE);
+            long downloadId = manager.enqueue(request);
+            if (fileName.toLowerCase(Locale.ROOT).endsWith(".apk") ||
+                    (mimeType != null && mimeType.toLowerCase(Locale.ROOT).contains("android.package-archive"))) {
+                prefs.edit().putLong("pending_apk_install_id", downloadId).apply();
+                toast("APK downloading. Android installer will open when it finishes.");
+            } else {
+                toast("Download started. Check Downloads.");
+            }
         } catch (Exception e) {
             toast("Download could not start.");
         }
@@ -2119,6 +2376,10 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        if (downloadReceiverRegistered) {
+            try { unregisterReceiver(downloadCompleteReceiver); } catch (Exception ignored) { }
+            downloadReceiverRegistered = false;
+        }
         for (Tab tab : tabs) {
             try {
                 tab.web.stopLoading();
