@@ -509,9 +509,9 @@ public class MainActivity extends Activity {
         String chrome = chromeVersionFrom(ua);
         String androidVersion = Build.VERSION.RELEASE == null ? "unknown" : Build.VERSION.RELEASE;
         String message = "Android version: " + androidVersion +
-                " (API " + Build.VERSION.SDK_INT + ")\\n" +
-                "WebView provider: " + webViewProviderInfo() + "\\n" +
-                "Chromium in user-agent: " + chrome + "\\n\\n" +
+                " (API " + Build.VERSION.SDK_INT + ")\n" +
+                "WebView provider: " + webViewProviderInfo() + "\n" +
+                "Chromium in user-agent: " + chrome + "\n\n" +
                 "NOVA uses the browser engine installed by the TV. Updating NOVA cannot upgrade that engine.";
         new AlertDialog.Builder(this)
                 .setTitle("NOVA browser engine")
