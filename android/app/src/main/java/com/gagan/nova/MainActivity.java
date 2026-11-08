@@ -50,10 +50,15 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends Activity {
     private static final int MAX_TABS = 3;
@@ -78,6 +83,9 @@ public class MainActivity extends Activity {
     private WebChromeClient.CustomViewCallback customViewCallback;
     private boolean fullscreen = false;
     private boolean desktopMode = false;
+    private boolean adBlockEnabled = false;
+    private boolean pointerEnabled = true;
+    private volatile Set<String> allowedAdHosts = new HashSet<>();
     private String panelReturnMode = "HOME";
     private String pendingDownload;
     private String pendingDownloadAgent, pendingDownloadDisposition, pendingDownloadMime;
@@ -140,6 +148,9 @@ public class MainActivity extends Activity {
         enterImmersive();
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         desktopMode = prefs.getBoolean("desktop_mode", false);
+        adBlockEnabled = prefs.getBoolean("ad_block_enabled", false);
+        pointerEnabled = prefs.getBoolean("pointer_enabled", true);
+        allowedAdHosts = new HashSet<>(prefs.getStringSet("ad_allowlist", new HashSet<>()));
         buildShell();
         createTab(false);
         showHome();
@@ -318,9 +329,12 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
         s.setLoadsImagesAutomatically(true);
+        s.setBlockNetworkImage(false);
         s.setJavaScriptCanOpenWindowsAutomatically(true);
         s.setSupportMultipleWindows(true);
-        s.setMediaPlaybackRequiresUserGesture(false);
+        s.setMediaPlaybackRequiresUserGesture(true);
+        s.setTextZoom(desktopMode ? 100 : 110);
+        web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
         s.setBuiltInZoomControls(true);
@@ -423,15 +437,22 @@ public class MainActivity extends Activity {
     }
 
     private void applyUserAgent(WebSettings settings) {
-        if (desktopMode) {
-            settings.setUserAgentString("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-        } else {
-            String ua = settings.getUserAgentString();
-            if (ua != null) {
-                ua = ua.replace("; wv)", ")").replace("Version/4.0 ", "");
-                settings.setUserAgentString(ua);
-            }
+        String base = settings.getUserAgentString();
+        String chrome = "120.0.0.0";
+        if (base != null) {
+            Matcher matcher = Pattern.compile("Chrome/([0-9.]+)").matcher(base);
+            if (matcher.find()) chrome = matcher.group(1);
         }
+        if (desktopMode) {
+            settings.setUserAgentString("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + chrome + " Safari/537.36");
+            settings.setLoadWithOverviewMode(false);
+            settings.setTextZoom(100);
+        } else {
+            settings.setUserAgentString("Mozilla/5.0 (Linux; Android 9; Android TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + chrome + " Safari/537.36");
+            settings.setLoadWithOverviewMode(true);
+            settings.setTextZoom(110);
+        }
+        settings.setUseWideViewPort(true);
     }
 
     private Tab findTab(WebView view) {
