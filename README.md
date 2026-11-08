@@ -101,3 +101,10 @@ HTML5 playback depends on the video format, codec, DRM and Android System WebVie
 - Open WebView's Play Store listing from the diagnostics screen to check for the last compatible update.
 
 Android 6 is outside current Chromium WebView support. Google documents that Android 5/6 devices can only receive their final supported WebView release and cannot install newer WebView updates after that point. If the TV firmware offers the Android TV 9 OTA, install it from Settings → System update / MIUI TV version before judging website compatibility. YouTube may still reject a legacy WebView even after NOVA is updated.
+
+
+## 1.4.2 diagnostics for TVs without Play Store
+
+The **Menu → Browser engine info** screen now also lists CPU ABIs and links to the Android 6-compatible Google WebView release page. It does not install WebView automatically. Android only accepts a package update if its package name, signing certificate and device firmware provider configuration are compatible.
+
+For Android 6, the last Google WebView branch listed for API 23 is 105.0.5195.136. This is legacy and may still be rejected by current websites such as YouTube.
