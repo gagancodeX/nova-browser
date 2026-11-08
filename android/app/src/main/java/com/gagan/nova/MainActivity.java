@@ -187,7 +187,7 @@ public class MainActivity extends Activity {
         address.setImeOptions(EditorInfo.IME_ACTION_GO);
         address.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
                 android.text.InputType.TYPE_TEXT_FLAG_AUTO_CORRECT);
-        address.setBackground(rounded(Color.rgb(27, 36, 54), 13));
+        address.setBackground(focusBackground(Color.rgb(27, 36, 54), Color.rgb(63, 56, 120)));
         LinearLayout.LayoutParams addressParams = new LinearLayout.LayoutParams(0, dp(42), 1f);
         addressParams.leftMargin = dp(8);
         addressParams.rightMargin = dp(8);
