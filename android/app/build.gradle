@@ -22,13 +22,12 @@ android {
     signingConfigs {
         release {
             def keyPath = System.getenv("NOVA_KEYSTORE_PATH")
-            if (keyPath == null || keyPath.trim().isEmpty()) {
-                throw new GradleException("NOVA_KEYSTORE_PATH is required for a stable signed release.")
+            if (keyPath != null && !keyPath.trim().isEmpty()) {
+                storeFile file(keyPath)
+                storePassword System.getenv("NOVA_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("NOVA_KEY_ALIAS")
+                keyPassword System.getenv("NOVA_KEY_PASSWORD")
             }
-            storeFile file(keyPath)
-            storePassword System.getenv("NOVA_KEYSTORE_PASSWORD")
-            keyAlias System.getenv("NOVA_KEY_ALIAS")
-            keyPassword System.getenv("NOVA_KEY_PASSWORD")
         }
     }
 
@@ -37,7 +36,9 @@ android {
             debuggable true
         }
         release {
-            signingConfig signingConfigs.release
+            if (System.getenv("NOVA_KEYSTORE_PATH") != null) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
         }
     }
