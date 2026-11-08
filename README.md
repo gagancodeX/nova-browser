@@ -1,39 +1,60 @@
 # NOVA TV Browser
 
-A lightweight, TV-first browser-style web app designed for the Xiaomi Mi TV 4A 32-inch and other Android TV devices.
+NOVA has two editions:
 
-## Web edition
+- **Native Android TV APK** — the recommended version for your Xiaomi Mi TV 4A 32-inch. Websites load as normal top-level pages inside Android WebView, rather than inside cross-site iframes.
+- **Web preview** — the browser-style interface hosted on Render at https://nova-tv-browser.onrender.com. It is limited by iframe restrictions and is not the full browser app.
 
-The installable web app lives in [web/](web/). It is optimized for TV screens, remote controls, and desktop browsers.
+## Native APK features
 
-Features:
-- TV-friendly address/search bar and browser navigation
-- D-pad support: Up, Down, Left, Right, OK/Select, and Back
-- Search opens real results as a normal top-level browser page
-- Google, Bing, and DuckDuckGo search
-- Up to three lightweight app tabs
-- Bookmarks and browsing history stored locally
-- HTML5 playback for direct MP4, WebM, and Ogg video URLs
-- YouTube direct-site launch for its homepage (the YouTube homepage blocks iframe embedding)
-- YouTube embed support for individual video URLs where the player is available
-- Full-browser launch screen for sites that block iframes
-- PWA manifest and offline app-shell caching
+- Search Google and open website URLs in the same browser window
+- YouTube and other websites load directly in the native WebView
+- TV remote D-pad, OK/Select and Back navigation
+- Address bar with Android TV on-screen keyboard
+- Three tabs (low-memory cap for 1 GB TVs)
+- Back, forward, reload and home
+- Bookmarks and browsing history
+- Downloads via Android DownloadManager
+- HTML5 video and fullscreen custom video playback
+- Desktop-site user-agent mode
+- Popup/new-window tab handling
+- Leanback launcher support and TV banner
+- No ad blocking by default, so it is less likely to break pages
 
-## Render deployment
+## Compatibility
 
-Render Static Site is connected to this repository:
-- Branch: `main`
-- Build command: `echo "NOVA web edition is static"`
-- Publish directory: `web`
+- Minimum Android version: Android 6.0 (API 23)
+- Target Android version: API 28 for older TV firmware compatibility
+- Requires Android System WebView on the TV
+- Built for landscape TV screens
 
-## Important browser limits
+The 2018 Mi TV 4A 32-inch has limited memory. NOVA intentionally limits the browser to three tabs.
 
-The hosted web edition is a browser-style shell, not a Chromium engine. Websites that block frames must be opened as top-level pages. Selecting **Open full website** navigates the current browser tab to the actual site. DRM playback, codecs, remote control compatibility, and sign-in behavior depend on the browser engine provided by the TV.
+## Get the APK
 
-## Device notes
+Every push affecting `android/**` automatically starts the **Build NOVA Android TV APK** GitHub Actions workflow.
 
-The Mi TV 4A 32-inch has limited memory. Keep tabs to three or fewer and close unused sites to reduce memory pressure.
+1. Open the repository's **Actions** tab.
+2. Open the latest **Build NOVA Android TV APK** run.
+3. Download the artifact named `NOVA-TV-Browser-1.1.0`.
+4. Extract the APK from the downloaded artifact ZIP.
 
-## License
+## Install on Xiaomi TV
 
-Personal project. Add a license before redistributing.
+1. Copy `NOVA-TV-Browser-1.1.0.apk` to a USB drive.
+2. Connect the USB drive to the TV.
+3. Open the TV File Manager and select the APK.
+4. Allow the File Manager to install unknown apps if Android asks.
+5. Install and open **NOVA TV Browser** from Apps.
+
+## Known limitations
+
+This app uses the Android System WebView installed on the TV. It is not a Chromium fork and cannot guarantee every desktop website will work. Modern sites may require a newer WebView than the TV firmware provides. DRM-protected services such as some subscription streaming playback depend on device DRM support and may not play in WebView. Playback resolution and codecs depend on the TV hardware and firmware.
+
+The Render-hosted web preview is not the native browser and should not be used as the final TV browser experience.
+
+## Repository layout
+
+- `android/` — native Android TV application
+- `web/` — hosted web preview
+- `.github/workflows/build-native-apk.yml` — APK build workflow
