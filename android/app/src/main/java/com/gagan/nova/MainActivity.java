@@ -352,10 +352,20 @@ public class MainActivity extends Activity {
 
         web.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                // Keep normal website links inside the current browser tab.
                 return handleExternalScheme(url);
             }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                return handleExternalScheme(request.getUrl().toString());
+                String url = request.getUrl().toString();
+                String scheme = request.getUrl().getScheme();
+                if ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) return false;
+                return handleExternalScheme(url);
+            }
+            @Override public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, String url) {
+                return interceptAdRequest(url);
+            }
+            @Override public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return interceptAdRequest(request.getUrl().toString());
             }
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
                 Tab tab = findTab(view);
@@ -372,6 +382,8 @@ public class MainActivity extends Activity {
                     else tab.title = hostName(url);
                     saveHistory(url, tab.title);
                 }
+                // Expose native HTML5 controls when a site's player supports them.
+                view.evaluateJavascript("(function(){document.querySelectorAll('video').forEach(function(v){v.setAttribute('controls','controls');v.setAttribute('playsinline','');v.style.maxWidth='100%';});})();", null);
                 if (view == activeWeb()) {
                     if (!address.hasFocus()) address.setText(url);
                     updateNavigationButtons();
@@ -380,7 +392,7 @@ public class MainActivity extends Activity {
             }
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (Build.VERSION.SDK_INT >= 23 && request.isForMainFrame() && view == activeWeb()) {
-                    toast("Page failed to load. Check Wi-Fi and press Reload.");
+                    toast("Page failed to load. Check connection, then press Reload.");
                 }
             }
         });
@@ -453,6 +465,35 @@ public class MainActivity extends Activity {
             settings.setTextZoom(110);
         }
         settings.setUseWideViewPort(true);
+    }
+
+    private boolean hostMatches(String host, String domain) {
+        return host.equals(domain) || host.endsWith("." + domain);
+    }
+
+    private android.webkit.WebResourceResponse interceptAdRequest(String rawUrl) {
+        if (!adBlockEnabled) return null;
+        Uri uri = Uri.parse(rawUrl);
+        String host = uri.getHost();
+        if (host == null) return null;
+        host = host.toLowerCase(Locale.ROOT);
+        for (String allowed : allowedAdHosts) {
+            if (hostMatches(host, allowed)) return null;
+        }
+        String[] adHosts = {
+            "doubleclick.net", "googlesyndication.com", "googleadservices.com",
+            "adservice.google.com", "adnxs.com", "adform.net", "taboola.com",
+            "outbrain.com", "criteo.com", "pubmatic.com", "openx.net",
+            "rubiconproject.com", "smartadserver.com", "yieldmo.com",
+            "adsrvr.org", "casalemedia.com", "contextweb.com", "media.net"
+        };
+        for (String domain : adHosts) {
+            if (hostMatches(host, domain)) {
+                return new android.webkit.WebResourceResponse("text/plain", "UTF-8",
+                        new ByteArrayInputStream(new byte[0]));
+            }
+        }
+        return null;
     }
 
     private Tab findTab(WebView view) {
