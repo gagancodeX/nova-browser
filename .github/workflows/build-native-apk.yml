@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-apk:
@@ -40,17 +40,46 @@ jobs:
       - name: Build debug APK
         run: gradle --no-daemon -p android assembleDebug
 
-      - name: Rename APK and generate checksum
+      - name: Prepare versioned and stable APK assets
+        id: apk
+        shell: bash
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk NOVA-TV-Browser-1.4.4.apk
-          sha256sum NOVA-TV-Browser-1.4.4.apk > NOVA-TV-Browser-1.4.4.sha256
+          VERSION=$(sed -n "s/.*versionName '\\([^']*\\)'.*/\\1/p" android/app/build.gradle | head -n 1)
+          if [ -z "$VERSION" ]; then
+            echo "Could not read versionName from android/app/build.gradle"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "NOVA-TV-Browser-$VERSION.apk"
+          sha256sum "NOVA-TV-Browser-$VERSION.apk" > "NOVA-TV-Browser-$VERSION.sha256"
+          cp "NOVA-TV-Browser-$VERSION.apk" "NOVA-TV-Browser.apk"
+          sha256sum "NOVA-TV-Browser.apk" > "NOVA-TV-Browser.apk.sha256"
 
-      - name: Upload installable APK
+      - name: Upload versioned build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NOVA-TV-Browser-1.4.4
+          name: NOVA-TV-Browser-${{ steps.apk.outputs.version }}
           path: |
-            NOVA-TV-Browser-1.4.4.apk
-            NOVA-TV-Browser-1.4.4.sha256
+            NOVA-TV-Browser-${{ steps.apk.outputs.version }}.apk
+            NOVA-TV-Browser-${{ steps.apk.outputs.version }}.sha256
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish stable GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.apk.outputs.version }}
+          name: NOVA TV Browser v${{ steps.apk.outputs.version }}
+          target_commitish: main
+          make_latest: true
+          overwrite_files: true
+          files: |
+            NOVA-TV-Browser.apk
+            NOVA-TV-Browser.apk.sha256
+          body: |
+            Installable NOVA TV Browser APK for Android TV.
+
+            Download NOVA-TV-Browser.apk for the latest build.
+            Check NOVA-TV-Browser.apk.sha256 to verify the download.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
