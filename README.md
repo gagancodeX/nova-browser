@@ -120,3 +120,24 @@ The native Android TV home screen has been redesigned with:
 - Bookmarks, history, downloads and browser tools shortcuts
 - Recent browsing history list
 - Quick status chips for TV/Desktop mode, ad blocker and pointer
+
+
+## 1.4.4 Cursor and settings update
+
+### Cursor settings
+- Cursor movement speed: 5–40 dp per key press, with repeat acceleration
+- Cursor size: 24–60 dp
+- Cursor shapes: Arrow, Crosshair, Ring
+- Cursor colours: White, Cyan, Yellow, Lime, Magenta, Orange
+- Optional dark outline for contrast
+- Cursor enable/disable and reset-to-centre action
+- Click pulse feedback
+
+### Browser settings
+- Dedicated Browser settings dialog
+- Ad blocker switch and site allowlist
+- TV/Desktop site mode switch
+- Google/Bing/DuckDuckGo search provider
+- Cursor settings shortcut
+- Browser engine diagnostics
+- Clear browsing data action
