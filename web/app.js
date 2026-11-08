@@ -22,7 +22,8 @@
     document.body.classList.toggle("reduce-motion",!!settings.reduceMotion);
     $("darkToggle").checked=!!settings.dark;$("motionToggle").checked=!!settings.reduceMotion;
     $("searchEngine").value=settings.engine;$("settingsSearchEngine").value=settings.engine;
-    document.documentElement.style.colorScheme=settings.dark?"dark":"dark";
+    document.documentElement.style.colorScheme=settings.dark?"dark":"light";
+    document.body.classList.toggle("light-theme",!settings.dark);
   }
   function normalizeInput(raw){
     const value=String(raw||"").trim();if(!value)return "";
