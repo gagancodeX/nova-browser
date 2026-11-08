@@ -92,3 +92,12 @@ HTML5 playback depends on the video format, codec, DRM and Android System WebVie
 - New-window website links are handled by real WebView tabs.
 - Ad allowlisting now exempts third-party ad requests while visiting the allowed site.
 - Downloads include the site's current session cookies.
+
+
+## 1.4.1 Android 6 compatibility notes
+
+- NOVA now reports the actual Android release and installed WebView/Chromium version in **Menu → Browser engine info**.
+- The TV-mode user agent is based on the installed WebView's real user agent; NOVA no longer falsely claims Android 9 or invents a Chrome version.
+- Open WebView's Play Store listing from the diagnostics screen to check for the last compatible update.
+
+Android 6 is outside current Chromium WebView support. Google documents that Android 5/6 devices can only receive their final supported WebView release and cannot install newer WebView updates after that point. If the TV firmware offers the Android TV 9 OTA, install it from Settings → System update / MIUI TV version before judging website compatibility. YouTube may still reject a legacy WebView even after NOVA is updated.
