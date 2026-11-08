@@ -47,6 +47,9 @@ import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
+import android.widget.Switch;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -89,6 +92,11 @@ public class MainActivity extends Activity {
     private String searchEngine = "Google";
     private boolean adBlockEnabled = false;
     private boolean pointerEnabled = true;
+    private int pointerSpeedDp = 18;
+    private int pointerSizeDp = 36;
+    private int pointerColor = Color.WHITE;
+    private String pointerShape = "Arrow";
+    private boolean pointerOutlineEnabled = true;
     private volatile Set<String> allowedAdHosts = new HashSet<>();
     private String panelReturnMode = "HOME";
     private String pendingDownload;
@@ -102,45 +110,85 @@ public class MainActivity extends Activity {
         Tab(WebView web) { this.web = web; }
     }
 
-    // A visible mouse-style cursor drawn above the WebView for D-pad remotes.
+    // Visible TV pointer drawn above WebView content. Style is controlled in Cursor settings.
     private final class PointerView extends View {
         private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint outline = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint accent = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Path arrow = new Path();
+        private boolean clickPulse = false;
 
         PointerView(Context context) {
             super(context);
             setFocusable(false);
             setClickable(false);
             setWillNotDraw(false);
-            fill.setColor(Color.WHITE);
             fill.setStyle(Paint.Style.FILL);
-            outline.setColor(Color.rgb(10, 14, 24));
             outline.setStyle(Paint.Style.STROKE);
-            outline.setStrokeWidth(dp(2));
             outline.setStrokeJoin(Paint.Join.ROUND);
+            accent.setStyle(Paint.Style.STROKE);
+            accent.setStrokeWidth(dp(2));
+            accent.setColor(Color.rgb(100, 221, 232));
             setLayerType(View.LAYER_TYPE_SOFTWARE, null);
             setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        }
+
+        void showClickPulse() {
+            clickPulse = true;
+            invalidate();
+            postDelayed(() -> {
+                clickPulse = false;
+                invalidate();
+            }, 180);
         }
 
         @Override protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
             if (getVisibility() != View.VISIBLE) return;
-            arrow.reset();
-            float x = pointerX;
-            float y = pointerY;
-            arrow.moveTo(x, y);
-            arrow.lineTo(x + dp(5), y + dp(29));
-            arrow.lineTo(x + dp(12), y + dp(22));
-            arrow.lineTo(x + dp(20), y + dp(39));
-            arrow.lineTo(x + dp(26), y + dp(36));
-            arrow.lineTo(x + dp(18), y + dp(19));
-            arrow.lineTo(x + dp(31), y + dp(18));
-            arrow.close();
-            fill.setShadowLayer(dp(4), 0, dp(2), 0x99000000);
-            canvas.drawPath(arrow, fill);
+
+            float scale = Math.max(0.65f, Math.min(1.75f, pointerSizeDp / 36f));
+            canvas.save();
+            canvas.translate(pointerX, pointerY);
+            canvas.scale(scale, scale);
+
+            fill.setColor(pointerColor);
+            outline.setColor(Color.rgb(10, 14, 24));
+            outline.setStrokeWidth(2.2f / scale);
+            fill.setShadowLayer(4, 0, 2, 0x99000000);
+
+            if ("Crosshair".equals(pointerShape)) {
+                canvas.drawCircle(0, 0, 10, outline);
+                canvas.drawLine(-17, 0, -5, 0, outline);
+                canvas.drawLine(5, 0, 17, 0, outline);
+                canvas.drawLine(0, -17, 0, -5, outline);
+                canvas.drawLine(0, 5, 0, 17, outline);
+                canvas.drawCircle(0, 0, 3, fill);
+            } else if ("Ring".equals(pointerShape)) {
+                fill.setStyle(Paint.Style.STROKE);
+                fill.setStrokeWidth(3.5f / scale);
+                canvas.drawCircle(0, 0, 12, fill);
+                fill.setStyle(Paint.Style.FILL);
+                canvas.drawCircle(0, 0, 2.5f, fill);
+            } else {
+                arrow.reset();
+                arrow.moveTo(0, 0);
+                arrow.lineTo(5, 29);
+                arrow.lineTo(12, 22);
+                arrow.lineTo(20, 39);
+                arrow.lineTo(26, 36);
+                arrow.lineTo(18, 19);
+                arrow.lineTo(31, 18);
+                arrow.close();
+                canvas.drawPath(arrow, fill);
+                if (pointerOutlineEnabled) canvas.drawPath(arrow, outline);
+            }
+
             fill.clearShadowLayer();
-            canvas.drawPath(arrow, outline);
+            if (clickPulse) {
+                accent.setAlpha(235);
+                canvas.drawCircle(0, 0, 22, accent);
+            }
+            canvas.restore();
         }
     }
 
@@ -155,6 +203,11 @@ public class MainActivity extends Activity {
         searchEngine = prefs.getString("search_engine", "Google");
         adBlockEnabled = prefs.getBoolean("ad_block_enabled", false);
         pointerEnabled = prefs.getBoolean("pointer_enabled", true);
+        pointerSpeedDp = prefs.getInt("pointer_speed_dp", 18);
+        pointerSizeDp = prefs.getInt("pointer_size_dp", 36);
+        pointerColor = prefs.getInt("pointer_color", Color.WHITE);
+        pointerShape = prefs.getString("pointer_shape", "Arrow");
+        pointerOutlineEnabled = prefs.getBoolean("pointer_outline", true);
         allowedAdHosts = new HashSet<>(prefs.getStringSet("ad_allowlist", new HashSet<>()));
         buildShell();
         createTab(false);
@@ -670,33 +723,46 @@ public class MainActivity extends Activity {
 
     private void clampPointer() {
         if (pointerView == null) return;
-        float min = dp(3);
-        float maxX = Math.max(min, pointerView.getWidth() - dp(34));
-        float maxY = Math.max(min, pointerView.getHeight() - dp(43));
+        float min = dp(4);
+        float maxX = Math.max(min, pointerView.getWidth() - dp(pointerSizeDp + 4));
+        float maxY = Math.max(min, pointerView.getHeight() - dp(pointerSizeDp + 5));
         pointerX = Math.max(min, Math.min(pointerX, maxX));
         pointerY = Math.max(min, Math.min(pointerY, maxY));
     }
 
-    private void movePointer(float dx, float dy) {
+    private void movePointer(float dx, float dy, int repeatCount) {
         if (pointerView == null || pointerView.getVisibility() != View.VISIBLE) return;
         if (!pointerInitialized) {
             pointerX = pointerView.getWidth() * 0.48f;
             pointerY = pointerView.getHeight() * 0.42f;
             pointerInitialized = true;
         }
-        pointerX += dx * dp(28);
-        pointerY += dy * dp(28);
+        float step = pointerSpeedDp;
+        if (repeatCount >= 5) step *= 1.5f;
+        if (repeatCount >= 10) step *= 1.7f;
+        pointerX += dx * dp(step);
+        pointerY += dy * dp(step);
         clampPointer();
         pointerView.invalidate();
         sendPointerHover();
+    }
+
+    private void resetPointerPosition() {
+        if (pointerView == null) return;
+        pointerX = pointerView.getWidth() * 0.48f;
+        pointerY = pointerView.getHeight() * 0.42f;
+        pointerInitialized = true;
+        clampPointer();
+        pointerView.invalidate();
+        sendPointerHover();
+        toast("Pointer returned to centre.");
     }
 
     private void sendPointerHover() {
         WebView web = activeWeb();
         if (web == null || pointerView == null || fullscreen) return;
         long now = SystemClock.uptimeMillis();
-        MotionEvent hover = MotionEvent.obtain(now, now, MotionEvent.ACTION_HOVER_MOVE,
-                pointerX, pointerY, 0);
+        MotionEvent hover = MotionEvent.obtain(now, now, MotionEvent.ACTION_HOVER_MOVE, pointerX, pointerY, 0);
         hover.setSource(InputDevice.SOURCE_MOUSE);
         web.dispatchGenericMotionEvent(hover);
         hover.recycle();
@@ -705,16 +771,15 @@ public class MainActivity extends Activity {
     private void clickAtPointer() {
         WebView web = activeWeb();
         if (web == null || pointerView == null || fullscreen) return;
+        pointerView.showClickPulse();
         long downTime = SystemClock.uptimeMillis();
-        MotionEvent down = MotionEvent.obtain(downTime, downTime,
-                MotionEvent.ACTION_DOWN, pointerX, pointerY, 0);
+        MotionEvent down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, pointerX, pointerY, 0);
         down.setSource(InputDevice.SOURCE_TOUCHSCREEN);
         web.dispatchTouchEvent(down);
         down.recycle();
 
         long upTime = SystemClock.uptimeMillis();
-        MotionEvent up = MotionEvent.obtain(downTime, upTime,
-                MotionEvent.ACTION_UP, pointerX, pointerY, 0);
+        MotionEvent up = MotionEvent.obtain(downTime, upTime, MotionEvent.ACTION_UP, pointerX, pointerY, 0);
         up.setSource(InputDevice.SOURCE_TOUCHSCREEN);
         web.dispatchTouchEvent(up);
         up.recycle();
@@ -724,27 +789,21 @@ public class MainActivity extends Activity {
     private boolean handlePointerRemoteKey(KeyEvent event) {
         if (!"BROWSER".equals(mode) || fullscreen || address.hasFocus() || !pointerEnabled) return false;
         int key = event.getKeyCode();
-        if (key == KeyEvent.KEYCODE_DPAD_UP ||
-                key == KeyEvent.KEYCODE_DPAD_DOWN ||
-                key == KeyEvent.KEYCODE_DPAD_LEFT ||
-                key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+        if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN ||
+                key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
                 float dx = 0, dy = 0;
                 if (key == KeyEvent.KEYCODE_DPAD_UP) dy = -1;
                 else if (key == KeyEvent.KEYCODE_DPAD_DOWN) dy = 1;
                 else if (key == KeyEvent.KEYCODE_DPAD_LEFT) dx = -1;
                 else if (key == KeyEvent.KEYCODE_DPAD_RIGHT) dx = 1;
-                movePointer(dx, dy);
+                movePointer(dx, dy, event.getRepeatCount());
             }
             return true;
         }
-        if (key == KeyEvent.KEYCODE_DPAD_CENTER ||
-                key == KeyEvent.KEYCODE_ENTER ||
-                key == KeyEvent.KEYCODE_NUMPAD_ENTER ||
-                key == KeyEvent.KEYCODE_BUTTON_A) {
-            if (event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
-                clickAtPointer();
-            }
+        if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER ||
+                key == KeyEvent.KEYCODE_NUMPAD_ENTER || key == KeyEvent.KEYCODE_BUTTON_A) {
+            if (event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) clickAtPointer();
             return true;
         }
         return false;
