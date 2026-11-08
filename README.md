@@ -37,7 +37,7 @@ Every push affecting `android/**` automatically starts the **Build NOVA Android 
 
 1. Open the repository's **Actions** tab.
 2. Open the latest **Build NOVA Android TV APK** run.
-3. Download the artifact named `NOVA-TV-Browser-1.2.0`.
+3. Download the artifact named `NOVA-TV-Browser-1.3.0`.
 4. Extract the APK from the downloaded artifact ZIP.
 
 ## Install on Xiaomi TV
@@ -68,3 +68,19 @@ While a website is open:
 - Press OK / Select / Enter to click a link, button, video control or input.
 - Use Back to return through website history.
 - The pointer is positioned over the webpage, not the browser toolbar.
+
+
+## Native browser extras (1.3.0)
+
+- TV mode and desktop-site mode toggle
+- Optional built-in ad request filter (off by default) for common ad-network hostnames
+- Per-site ad allowlist
+- Search provider cycle: Google, Bing, DuckDuckGo
+- New-window links open in a browser tab (up to 3 tabs)
+- Find in page, text zoom, share/copy current URL
+- Reload without cache
+- Focus address bar and pointer on/off controls in the remote menu
+
+The ad blocker is a lightweight hostname filter, not a full extension engine or a regularly updated EasyList/uBlock filter engine. Some websites can break when blocking is enabled; turn it off or allow ads for that site if needed.
+
+HTML5 playback depends on the video format, codec, DRM and Android System WebView version installed on the TV. The browser cannot guarantee playback on every streaming site.
