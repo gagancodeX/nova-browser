@@ -1,4 +1,4 @@
-const CACHE="nova-tv-shell-v3";
+const CACHE="nova-tv-shell-v4";
 const SHELL=["./","./index.html","./styles.css","./app.js","./manifest.webmanifest","./assets/nova.svg"];
 
 self.addEventListener("install",event=>{
