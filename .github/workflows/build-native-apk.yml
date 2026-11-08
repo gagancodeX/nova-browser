@@ -42,15 +42,15 @@ jobs:
 
       - name: Rename APK and generate checksum
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk NOVA-TV-Browser-1.4.1.apk
-          sha256sum NOVA-TV-Browser-1.4.1.apk > NOVA-TV-Browser-1.4.1.sha256
+          cp android/app/build/outputs/apk/debug/app-debug.apk NOVA-TV-Browser-1.4.2.apk
+          sha256sum NOVA-TV-Browser-1.4.2.apk > NOVA-TV-Browser-1.4.2.sha256
 
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: NOVA-TV-Browser-1.4.1
+          name: NOVA-TV-Browser-1.4.2
           path: |
-            NOVA-TV-Browser-1.4.1.apk
-            NOVA-TV-Browser-1.4.1.sha256
+            NOVA-TV-Browser-1.4.2.apk
+            NOVA-TV-Browser-1.4.2.sha256
           if-no-files-found: error
           retention-days: 30
