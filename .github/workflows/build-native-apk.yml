@@ -88,10 +88,10 @@ jobs:
       - name: Package stable-signed release
         if: ${{ env.NOVA_KEYSTORE_PATH != '' }}
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk "Android-TV-Browser-${{ steps.version.outputs.version }}.apk"
-          sha256sum "Android-TV-Browser-${{ steps.version.outputs.version }}.apk" > "Android-TV-Browser-${{ steps.version.outputs.version }}.sha256"
-          cp "Android-TV-Browser-${{ steps.version.outputs.version }}.apk" Android-TV-Browser.apk
-          sha256sum Android-TV-Browser.apk > Android-TV-Browser.apk.sha256
+          cp android/app/build/outputs/apk/release/app-release.apk "NOVA-TV-Browser-${{ steps.version.outputs.version }}.apk"
+          sha256sum "Android-TV-Browser-${{ steps.version.outputs.version }}.apk" > "NOVA-TV-Browser-${{ steps.version.outputs.version }}.sha256"
+          cp "Android-TV-Browser-${{ steps.version.outputs.version }}.apk" NOVA-TV-Browser.apk
+          sha256sum Android-TV-Browser.apk > NOVA-TV-Browser.apk.sha256
 
       - name: Upload stable-signed APK
         if: ${{ env.NOVA_KEYSTORE_PATH != '' }}
