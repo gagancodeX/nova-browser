@@ -8,14 +8,20 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.view.Gravity;
+import android.view.InputDevice;
+import android.view.MotionEvent;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -60,6 +66,9 @@ public class MainActivity extends Activity {
     private int activeIndex = -1;
     private LinearLayout root, toolbar, tabsRow;
     private FrameLayout content;
+    private PointerView pointerView;
+    private float pointerX, pointerY;
+    private boolean pointerInitialized = false;
     private HorizontalScrollView tabScroll;
     private String mode = "HOME";
     private EditText address;
@@ -79,6 +88,48 @@ public class MainActivity extends Activity {
         String title = "New tab";
         String url = "";
         Tab(WebView web) { this.web = web; }
+    }
+
+    // A visible mouse-style cursor drawn above the WebView for D-pad remotes.
+    private final class PointerView extends View {
+        private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint outline = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Path arrow = new Path();
+
+        PointerView(Context context) {
+            super(context);
+            setFocusable(false);
+            setClickable(false);
+            setWillNotDraw(false);
+            fill.setColor(Color.WHITE);
+            fill.setStyle(Paint.Style.FILL);
+            outline.setColor(Color.rgb(10, 14, 24));
+            outline.setStyle(Paint.Style.STROKE);
+            outline.setStrokeWidth(dp(2));
+            outline.setStrokeJoin(Paint.Join.ROUND);
+            setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+            setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        }
+
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            if (getVisibility() != View.VISIBLE) return;
+            arrow.reset();
+            float x = pointerX;
+            float y = pointerY;
+            arrow.moveTo(x, y);
+            arrow.lineTo(x + dp(5), y + dp(29));
+            arrow.lineTo(x + dp(12), y + dp(22));
+            arrow.lineTo(x + dp(20), y + dp(39));
+            arrow.lineTo(x + dp(26), y + dp(36));
+            arrow.lineTo(x + dp(18), y + dp(19));
+            arrow.lineTo(x + dp(31), y + dp(18));
+            arrow.close();
+            fill.setShadowLayer(dp(4), 0, dp(2), 0x99000000);
+            canvas.drawPath(arrow, fill);
+            fill.clearShadowLayer();
+            canvas.drawPath(arrow, outline);
+        }
     }
 
     @Override public void onCreate(Bundle state) {
@@ -463,8 +514,104 @@ public class MainActivity extends Activity {
             if (web.getParent() != null) ((ViewGroup)web.getParent()).removeView(web);
             content.addView(web, new FrameLayout.LayoutParams(-1, -1));
             web.requestFocus();
+            if (pointerView == null) pointerView = new PointerView(this);
+            content.addView(pointerView, new FrameLayout.LayoutParams(-1, -1));
+            pointerView.setVisibility(View.VISIBLE);
+            pointerView.bringToFront();
+            pointerView.post(() -> {
+                if (!pointerInitialized && pointerView.getWidth() > 0 && pointerView.getHeight() > 0) {
+                    pointerX = pointerView.getWidth() * 0.48f;
+                    pointerY = pointerView.getHeight() * 0.42f;
+                    pointerInitialized = true;
+                }
+                clampPointer();
+                pointerView.invalidate();
+                sendPointerHover();
+            });
         }
         updateNavigationButtons();
+    }
+
+    private void clampPointer() {
+        if (pointerView == null) return;
+        float min = dp(3);
+        float maxX = Math.max(min, pointerView.getWidth() - dp(34));
+        float maxY = Math.max(min, pointerView.getHeight() - dp(43));
+        pointerX = Math.max(min, Math.min(pointerX, maxX));
+        pointerY = Math.max(min, Math.min(pointerY, maxY));
+    }
+
+    private void movePointer(float dx, float dy) {
+        if (pointerView == null || pointerView.getVisibility() != View.VISIBLE) return;
+        if (!pointerInitialized) {
+            pointerX = pointerView.getWidth() * 0.48f;
+            pointerY = pointerView.getHeight() * 0.42f;
+            pointerInitialized = true;
+        }
+        pointerX += dx * dp(28);
+        pointerY += dy * dp(28);
+        clampPointer();
+        pointerView.invalidate();
+        sendPointerHover();
+    }
+
+    private void sendPointerHover() {
+        WebView web = activeWeb();
+        if (web == null || pointerView == null || fullscreen) return;
+        long now = SystemClock.uptimeMillis();
+        MotionEvent hover = MotionEvent.obtain(now, now, MotionEvent.ACTION_HOVER_MOVE,
+                pointerX, pointerY, 0);
+        hover.setSource(InputDevice.SOURCE_MOUSE);
+        web.dispatchGenericMotionEvent(hover);
+        hover.recycle();
+    }
+
+    private void clickAtPointer() {
+        WebView web = activeWeb();
+        if (web == null || pointerView == null || fullscreen) return;
+        long downTime = SystemClock.uptimeMillis();
+        MotionEvent down = MotionEvent.obtain(downTime, downTime,
+                MotionEvent.ACTION_DOWN, pointerX, pointerY, 0);
+        down.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+        web.dispatchTouchEvent(down);
+        down.recycle();
+
+        long upTime = SystemClock.uptimeMillis();
+        MotionEvent up = MotionEvent.obtain(downTime, upTime,
+                MotionEvent.ACTION_UP, pointerX, pointerY, 0);
+        up.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+        web.dispatchTouchEvent(up);
+        up.recycle();
+        sendPointerHover();
+    }
+
+    private boolean handlePointerRemoteKey(KeyEvent event) {
+        if (!"BROWSER".equals(mode) || fullscreen || address.hasFocus()) return false;
+        int key = event.getKeyCode();
+        if (key == KeyEvent.KEYCODE_DPAD_UP ||
+                key == KeyEvent.KEYCODE_DPAD_DOWN ||
+                key == KeyEvent.KEYCODE_DPAD_LEFT ||
+                key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                float dx = 0, dy = 0;
+                if (key == KeyEvent.KEYCODE_DPAD_UP) dy = -1;
+                else if (key == KeyEvent.KEYCODE_DPAD_DOWN) dy = 1;
+                else if (key == KeyEvent.KEYCODE_DPAD_LEFT) dx = -1;
+                else if (key == KeyEvent.KEYCODE_DPAD_RIGHT) dx = 1;
+                movePointer(dx, dy);
+            }
+            return true;
+        }
+        if (key == KeyEvent.KEYCODE_DPAD_CENTER ||
+                key == KeyEvent.KEYCODE_ENTER ||
+                key == KeyEvent.KEYCODE_NUMPAD_ENTER ||
+                key == KeyEvent.KEYCODE_BUTTON_A) {
+            if (event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
+                clickAtPointer();
+            }
+            return true;
+        }
+        return false;
     }
 
     private void showHome() {
@@ -895,6 +1042,7 @@ public class MainActivity extends Activity {
             showMenu(toolbar.getChildAt(toolbar.getChildCount() - 1));
             return true;
         }
+        if (handlePointerRemoteKey(event)) return true;
         return super.dispatchKeyEvent(event);
     }
 
