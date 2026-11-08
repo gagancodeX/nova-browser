@@ -53,8 +53,18 @@
             <input id="heroSearchInput" type="text" autocomplete="off" placeholder="Search anything or paste a website..." aria-label="Search the web">
             <select id="searchEngine" aria-label="Search engine">
               <option value="google">Google</option>
-              <option value="duckduckgo">DuckDuckGo</option>
               <option value="bing">Bing</option>
+              <option value="duckduckgo">DuckDuckGo</option>
+              <option value="brave">Brave Search</option>
+              <option value="yahoo">Yahoo</option>
+              <option value="ecosia">Ecosia</option>
+              <option value="startpage">Startpage</option>
+              <option value="qwant">Qwant</option>
+              <option value="mojeek">Mojeek</option>
+              <option value="yandex">Yandex</option>
+              <option value="naver">Naver</option>
+              <option value="kagi">Kagi</option>
+              <option value="custom">Custom URL</option>
             </select>
             <button type="submit">Search <span>↗</span></button>
           </form>
@@ -76,7 +86,7 @@
 
           <div class="home-bottom">
             <div class="privacy-note"><span class="shield">◆</span><span><strong>Your browser, your data.</strong> Bookmarks and history stay in this browser.</span></div>
-            <div class="home-links"><button id="bookmarksLink">☆ Bookmarks</button><button id="historyLink">◷ History</button><button id="videoLink">▶ Open video</button></div>
+            <div class="home-links"><button id="bookmarksLink">☆ Bookmarks</button><button id="historyLink">◷ History</button><button id="videoLink">▶ Open video</button><a class="native-app-link" href="https://github.com/gagancodeX/nova-browser/releases" target="_blank" rel="noopener">↓ Android TV APK</a></div>
           </div>
         </div>
       </section>
@@ -123,9 +133,10 @@
         <div class="settings-grid">
           <div class="setting-card"><div><strong>Dark appearance</strong><p>Keep the interface easy on the eyes.</p></div><label class="switch"><input id="darkToggle" type="checkbox" checked><span></span></label></div>
           <div class="setting-card"><div><strong>Reduce motion</strong><p>Use fewer animations on older TVs.</p></div><label class="switch"><input id="motionToggle" type="checkbox"><span></span></label></div>
-          <div class="setting-card"><div><strong>Search engine</strong><p>Choose your default search provider.</p></div><select id="settingsSearchEngine"><option value="google">Google</option><option value="duckduckgo">DuckDuckGo</option><option value="bing">Bing</option></select></div>
+          <div class="setting-card"><div><strong>Search engine</strong><p>Choose your default search provider.</p></div><select id="settingsSearchEngine"><option value="google">Google</option><option value="bing">Bing</option><option value="duckduckgo">DuckDuckGo</option><option value="brave">Brave Search</option><option value="yahoo">Yahoo</option><option value="ecosia">Ecosia</option><option value="startpage">Startpage</option><option value="qwant">Qwant</option><option value="mojeek">Mojeek</option><option value="yandex">Yandex</option><option value="naver">Naver</option><option value="kagi">Kagi</option><option value="custom">Custom URL</option></select></div>
+          <div class="setting-card wide hidden" id="customSearchSetting"><div><strong>Custom search URL</strong><p>Use %s where the search phrase belongs. Example: https://example.com/search?q=%s</p></div><input id="customSearchTemplate" type="url" value="https://www.google.com/search?q=%s" aria-label="Custom search URL"></div>
           <div class="setting-card"><div><strong>Clear browsing data</strong><p>Remove local history and saved bookmarks.</p></div><button class="danger-btn" id="clearDataBtn">Clear data</button></div>
-          <div class="setting-card wide"><div><strong>About NOVA</strong><p>NOVA is a browser-style web app. It uses the browser engine provided by your device. It cannot bypass website embedding restrictions or DRM.</p></div><span class="version-tag">WEB 1.0</span></div>
+          <div class="setting-card wide"><div><strong>About this web preview</strong><p>This hosted preview uses iframes and cannot replace a native browser engine. For full-page browsing on Android TV, install the Android application. Current device WebView, DRM and codec limits still apply.</p></div><span class="version-tag">WEB PREVIEW</span></div>
         </div>
       </section>
     </main>
