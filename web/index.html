@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090b12">
+  <meta name="description" content="NOVA — a modern browser-style experience designed for Android TV and remote controls.">
+  <title>NOVA Browser</title>
+  <link rel="icon" href="./assets/nova.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <button class="brand" id="homeBtn" aria-label="NOVA home" title="Home">
+        <span class="brand-mark">N</span><span class="brand-name">NOVA</span>
+        <span class="brand-tag">BROWSER</span>
+      </button>
+
+      <nav class="browser-controls" aria-label="Browser controls">
+        <button class="icon-btn" id="backBtn" aria-label="Back" title="Back">←</button>
+        <button class="icon-btn" id="forwardBtn" aria-label="Forward" title="Forward">→</button>
+        <button class="icon-btn" id="reloadBtn" aria-label="Reload" title="Reload">↻</button>
+        <button class="icon-btn home-control" id="homeControlBtn" aria-label="Home" title="Home">⌂</button>
+      </nav>
+
+      <form class="address-form" id="addressForm" role="search">
+        <span class="address-security" aria-hidden="true">◈</span>
+        <input id="addressInput" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search or enter address" aria-label="Search or enter address">
+        <button class="address-go" type="submit" aria-label="Go">GO</button>
+      </form>
+
+      <div class="top-actions">
+        <button class="icon-btn" id="bookmarkCurrentBtn" aria-label="Bookmark this page" title="Bookmark">☆</button>
+        <button class="icon-btn" id="newTabBtn" aria-label="New tab" title="New tab">＋</button>
+        <button class="profile-btn" id="settingsBtn" aria-label="Settings" title="Settings">⚙</button>
+      </div>
+    </header>
+
+    <div class="tabstrip" id="tabStrip" role="tablist" aria-label="Open tabs"></div>
+
+    <main class="workspace">
+      <section id="homeView" class="home-view">
+        <div class="home-orb orb-one"></div><div class="home-orb orb-two"></div>
+        <div class="home-content">
+          <div class="eyebrow"><span class="live-dot"></span> YOUR SCREEN. YOUR INTERNET.</div>
+          <div class="hero-title">Browse beyond<br><span>the ordinary.</span></div>
+          <p class="hero-copy">A calmer, faster way to explore the web on your TV.</p>
+
+          <form class="hero-search" id="heroSearchForm">
+            <span class="search-symbol">⌕</span>
+            <input id="heroSearchInput" type="text" autocomplete="off" placeholder="Search anything or paste a website..." aria-label="Search the web">
+            <select id="searchEngine" aria-label="Search engine">
+              <option value="google">Google</option>
+              <option value="duckduckgo">DuckDuckGo</option>
+              <option value="bing">Bing</option>
+            </select>
+            <button type="submit">Search <span>↗</span></button>
+          </form>
+
+          <div class="section-head">
+            <div><span class="section-kicker">YOUR SHORTCUTS</span><h2>Jump right in</h2></div>
+            <button class="text-action" id="manageShortcutsBtn">Explore sites ↗</button>
+          </div>
+          <div class="shortcut-grid" id="shortcutGrid">
+            <button class="shortcut-card" data-url="https://www.youtube.com"><span class="shortcut-icon youtube">▶</span><span>YouTube</span><small>Videos & creators</small></button>
+            <button class="shortcut-card" data-url="https://www.netflix.com"><span class="shortcut-icon netflix">N</span><span>Netflix</span><small>Movies & series</small></button>
+            <button class="shortcut-card" data-url="https://www.primevideo.com"><span class="shortcut-icon prime">p</span><span>Prime Video</span><small>Watch anywhere</small></button>
+            <button class="shortcut-card" data-url="https://www.hotstar.com"><span class="shortcut-icon hotstar">✦</span><span>JioHotstar</span><small>Sports & stories</small></button>
+            <button class="shortcut-card" data-url="https://www.sonyliv.com"><span class="shortcut-icon sony">S</span><span>Sony LIV</span><small>Live & on demand</small></button>
+            <button class="shortcut-card" data-url="https://www.zee5.com"><span class="shortcut-icon zee">Z</span><span>ZEE5</span><small>Shows & originals</small></button>
+            <button class="shortcut-card" data-url="https://www.wikipedia.org"><span class="shortcut-icon wiki">W</span><span>Wikipedia</span><small>Explore knowledge</small></button>
+            <button class="shortcut-card" data-url="https://www.google.com"><span class="shortcut-icon google">G</span><span>Google</span><small>Search the web</small></button>
+          </div>
+
+          <div class="home-bottom">
+            <div class="privacy-note"><span class="shield">◆</span><span><strong>Your browser, your data.</strong> Bookmarks and history stay in this browser.</span></div>
+            <div class="home-links"><button id="bookmarksLink">☆ Bookmarks</button><button id="historyLink">◷ History</button><button id="videoLink">▶ Open video</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="browserView" class="browser-view hidden" aria-label="Web content">
+        <div class="viewer-toolbar">
+          <div class="viewer-status"><span class="status-pip"></span><span id="pageStatus">Ready</span></div>
+          <div class="viewer-actions">
+            <button class="small-btn" id="openExternalBtn">↗ Open full site</button>
+            <button class="small-btn" id="desktopModeBtn" aria-pressed="false">▣ Desktop site</button>
+            <button class="small-btn" id="fullscreenBtn">⛶ Fullscreen</button>
+          </div>
+        </div>
+        <div class="viewer-stage" id="viewerStage">
+          <iframe id="pageFrame" title="Web page" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-read; clipboard-write" allowfullscreen></iframe>
+          <div class="video-stage hidden" id="videoStage">
+            <video id="videoPlayer" controls playsinline preload="metadata"></video>
+            <div class="video-caption"><span>NOW PLAYING</span><strong id="videoTitle">Video</strong></div>
+          </div>
+          <div class="embed-hint" id="embedHint">
+            <span class="hint-mark">↗</span>
+            <span>Some websites don't allow embedded viewing.</span>
+            <button id="hintOpenExternalBtn">Open this website</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="libraryView" class="library-view hidden">
+        <div class="library-header"><div><span class="section-kicker" id="libraryKicker">YOUR LIBRARY</span><h1 id="libraryTitle">Bookmarks</h1><p id="librarySubtitle">Your saved places, ready when you are.</p></div><button class="small-btn" id="libraryBackBtn">← Back to browser</button></div>
+        <div class="library-list" id="libraryList"></div>
+      </section>
+
+      <section id="settingsView" class="settings-view hidden">
+        <div class="library-header"><div><span class="section-kicker">MAKE IT YOURS</span><h1>Settings</h1><p>Fine-tune your NOVA experience.</p></div><button class="small-btn" id="settingsBackBtn">← Back</button></div>
+        <div class="settings-grid">
+          <div class="setting-card"><div><strong>Dark appearance</strong><p>Keep the interface easy on the eyes.</p></div><label class="switch"><input id="darkToggle" type="checkbox" checked><span></span></label></div>
+          <div class="setting-card"><div><strong>Reduce motion</strong><p>Use fewer animations on older TVs.</p></div><label class="switch"><input id="motionToggle" type="checkbox"><span></span></label></div>
+          <div class="setting-card"><div><strong>Search engine</strong><p>Choose your default search provider.</p></div><select id="settingsSearchEngine"><option value="google">Google</option><option value="duckduckgo">DuckDuckGo</option><option value="bing">Bing</option></select></div>
+          <div class="setting-card"><div><strong>Clear browsing data</strong><p>Remove local history and saved bookmarks.</p></div><button class="danger-btn" id="clearDataBtn">Clear data</button></div>
+          <div class="setting-card wide"><div><strong>About NOVA</strong><p>NOVA is a browser-style web app. It uses the browser engine provided by your device. It cannot bypass website embedding restrictions or DRM.</p></div><span class="version-tag">WEB 1.0</span></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="statusbar">
+      <div><span class="status-pip"></span><span id="footerStatus">NOVA is ready</span></div>
+      <div class="status-right"><span>TV MODE</span><span class="status-divider"></span><span id="clock">--:--</span></div>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js"></script>
+</body>
+</html>
