@@ -200,3 +200,35 @@ The repository workflow intentionally stops before publishing a release if signi
 Open **Home → Discover & Update** or **Menu → Get apps & APKs** to browse app catalogues. APK downloads are sent to Android Download Manager; when an APK finishes, NOVA opens the system package installer.
 
 Use **NOVA Update → Check for NOVA update** or **Menu → Check for NOVA update** to check the latest GitHub Release and download/install it directly on the TV. After the one-time stable-signed 1.4.8 install, future updates use the same private signing key and can be installed over the existing app, preserving NOVA's app data.
+
+
+## Android TV Browser 1.5.0 — current implementation
+
+### Working native features in the source
+- Native Android WebView browsing with URL/search detection
+- Google, Bing, DuckDuckGo, Brave Search, Yahoo, Ecosia, Startpage, Qwant, Mojeek, Yandex, Naver, Kagi and custom search URL templates
+- TV and desktop user-agent modes (uses the installed engine's actual version)
+- Remote pointer with configurable speed, size, colour, shape and outline
+- Up to three tabs
+- Private tabs that do not write page visits to browser history and disable form saving/cache use (Android WebView cookies remain shared; this is not full cookie-isolated incognito)
+- Bookmarks and history
+- User-created website channels
+- HTML5 video controls and fullscreen custom-view handling where supported by the installed WebView
+- Basic optional domain ad filtering and per-site allowlist
+- Downloads through Android Download Manager
+- App discovery links and GitHub-based update checking
+- Engine diagnostics for Android release, WebView provider and CPU ABI
+
+### Explicitly not equivalent to a full Chromium/Puffin engine
+- This app uses Android System WebView; current websites may not support the TV's Android 6 engine.
+- The ad filter is a small domain list, not a full EasyList/uBlock engine.
+- Private tabs do not have an isolated WebView cookie store.
+- Cloud browser/remote Chromium rendering is not deployed.
+- DRM streaming is limited by the TV hardware, WebView and Widevine support.
+- Real-device testing is still required on the Xiaomi Mi TV.
+
+### Build outputs
+Every main-branch Android change creates a **debug APK artifact** that can be downloaded from the GitHub Actions run for 30 days. A **stable-signed release APK** is only created when all four Actions signing secrets are configured. This avoids publishing a temporary debug signature as an in-place update.
+
+### Stable signing secrets
+See [docs/ANDROID-RELEASE-SIGNING.md](docs/ANDROID-RELEASE-SIGNING.md) for the one-time setup. Never commit a keystore or passwords to this repository.
