@@ -2,8 +2,11 @@ package com.gagan.nova;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -414,11 +417,19 @@ public class MainActivity extends Activity {
             }
             @Override public boolean onCreateWindow(WebView view, boolean dialog, boolean userGesture,
                                                     android.os.Message resultMsg) {
-                if (!userGesture || tabs.size() >= MAX_TABS) return false;
-                createTab(false);
+                if (tabs.size() >= MAX_TABS) {
+                    toast("Close a tab before opening another website.");
+                    return false;
+                }
+                // Many search results use target=_blank; create an actual browser tab for them.
+                WebView newWeb = createWebView();
+                Tab newTab = new Tab(newWeb);
+                tabs.add(newTab);
+                activeIndex = tabs.size() - 1;
+                refreshTabs();
                 showWebContent();
                 WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
-                transport.setWebView(activeWeb());
+                transport.setWebView(newWeb);
                 resultMsg.sendToTarget();
                 return true;
             }
@@ -861,22 +872,151 @@ public class MainActivity extends Activity {
     }
 
     private void showMenu(View anchor) {
+        if (anchor == null) anchor = toolbar.getChildAt(toolbar.getChildCount() - 1);
         PopupMenu popup = new PopupMenu(this, anchor);
+        popup.getMenu().add("Focus address bar");
+        popup.getMenu().add("Pointer: " + (pointerEnabled ? "ON" : "OFF"));
+        popup.getMenu().add("New tab");
         popup.getMenu().add("Add bookmark");
         popup.getMenu().add("Bookmarks");
         popup.getMenu().add("History");
-        popup.getMenu().add(desktopMode ? "✓ Desktop site mode" : "Desktop site mode");
+        popup.getMenu().add(desktopMode ? "Switch to TV mode" : "Switch to Desktop mode");
+        popup.getMenu().add("Ad blocker: " + (adBlockEnabled ? "ON" : "OFF"));
+        popup.getMenu().add("Allow ads on this site");
+        popup.getMenu().add("Find in page");
+        popup.getMenu().add("Share page");
+        popup.getMenu().add("Copy page link");
+        popup.getMenu().add("Zoom in");
+        popup.getMenu().add("Zoom out");
+        popup.getMenu().add("Reset zoom");
+        popup.getMenu().add("Reload without cache");
         popup.getMenu().add("Clear browsing data");
         popup.setOnMenuItemClickListener(item -> {
             String value = item.getTitle().toString();
-            if ("Add bookmark".equals(value)) addBookmark();
+            if ("Focus address bar".equals(value)) focusAddress();
+            else if (value.startsWith("Pointer:")) togglePointer();
+            else if ("New tab".equals(value)) createTab(true);
+            else if ("Add bookmark".equals(value)) addBookmark();
             else if ("Bookmarks".equals(value)) showBookmarks();
             else if ("History".equals(value)) showHistory();
-            else if (value.contains("Desktop site mode")) toggleDesktopMode();
+            else if (value.startsWith("Switch to ")) toggleDesktopMode();
+            else if (value.startsWith("Ad blocker:")) toggleAdBlocker();
+            else if ("Allow ads on this site".equals(value)) allowAdsForCurrentSite();
+            else if ("Find in page".equals(value)) findInPage();
+            else if ("Share page".equals(value)) shareCurrentPage();
+            else if ("Copy page link".equals(value)) copyCurrentPage();
+            else if ("Zoom in".equals(value)) changeZoom(10);
+            else if ("Zoom out".equals(value)) changeZoom(-10);
+            else if ("Reset zoom".equals(value)) resetZoom();
+            else if ("Reload without cache".equals(value)) reloadWithoutCache();
             else if ("Clear browsing data".equals(value)) clearData();
             return true;
         });
         popup.show();
+    }
+
+    private void togglePointer() {
+        pointerEnabled = !pointerEnabled;
+        prefs.edit().putBoolean("pointer_enabled", pointerEnabled).apply();
+        if (pointerView != null) pointerView.setVisibility(pointerEnabled ? View.VISIBLE : View.GONE);
+        toast(pointerEnabled ? "Pointer ON: arrows move, OK clicks." : "Pointer OFF: use page focus.");
+    }
+
+    private void toggleAdBlocker() {
+        adBlockEnabled = !adBlockEnabled;
+        prefs.edit().putBoolean("ad_block_enabled", adBlockEnabled).apply();
+        toast("Ad blocker " + (adBlockEnabled ? "enabled" : "disabled") + ". Reloading page.");
+        WebView web = activeWeb();
+        if (web != null && web.getUrl() != null) web.reload();
+    }
+
+    private void allowAdsForCurrentSite() {
+        WebView web = activeWeb();
+        if (web == null || web.getUrl() == null) {
+            toast("Open a website first.");
+            return;
+        }
+        String host = Uri.parse(web.getUrl()).getHost();
+        if (host == null) return;
+        host = host.toLowerCase(Locale.ROOT);
+        Set<String> next = new HashSet<>(allowedAdHosts);
+        if (next.contains(host)) {
+            next.remove(host);
+            toast("Ad blocking restored for this site.");
+        } else {
+            next.add(host);
+            toast("Ads allowed for this site.");
+        }
+        allowedAdHosts = next;
+        prefs.edit().putStringSet("ad_allowlist", new HashSet<>(next)).apply();
+        web.reload();
+    }
+
+    private void findInPage() {
+        WebView web = activeWeb();
+        if (web == null) return;
+        EditText query = new EditText(this);
+        query.setSingleLine(true);
+        query.setHint("Find text on this page");
+        new AlertDialog.Builder(this)
+                .setTitle("Find in page")
+                .setView(query)
+                .setPositiveButton("Find next", (dialog, which) -> {
+                    String term = query.getText().toString().trim();
+                    if (!term.isEmpty()) {
+                        web.findAllAsync(term);
+                        web.findNext(true);
+                    }
+                })
+                .setNegativeButton("Close", null)
+                .show();
+    }
+
+    private void shareCurrentPage() {
+        WebView web = activeWeb();
+        if (web == null || web.getUrl() == null) return;
+        Intent share = new Intent(Intent.ACTION_SEND);
+        share.setType("text/plain");
+        share.putExtra(Intent.EXTRA_TEXT, web.getUrl());
+        try {
+            startActivity(Intent.createChooser(share, "Share page"));
+        } catch (Exception e) {
+            toast("No sharing app is available.");
+        }
+    }
+
+    private void copyCurrentPage() {
+        WebView web = activeWeb();
+        if (web == null || web.getUrl() == null) return;
+        ClipboardManager clipboard = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+        if (clipboard != null) {
+            clipboard.setPrimaryClip(ClipData.newPlainText("NOVA page URL", web.getUrl()));
+            toast("Page link copied.");
+        }
+    }
+
+    private void changeZoom(int delta) {
+        WebView web = activeWeb();
+        if (web == null) return;
+        int zoom = Math.max(70, Math.min(180, web.getSettings().getTextZoom() + delta));
+        web.getSettings().setTextZoom(zoom);
+        toast("Text zoom: " + zoom + "%");
+    }
+
+    private void resetZoom() {
+        WebView web = activeWeb();
+        if (web == null) return;
+        web.getSettings().setTextZoom(desktopMode ? 100 : 110);
+        web.setInitialScale(0);
+        toast("Zoom reset.");
+    }
+
+    private void reloadWithoutCache() {
+        WebView web = activeWeb();
+        if (web != null) {
+            web.clearCache(true);
+            web.reload();
+        }
     }
 
     private void toggleDesktopMode() {
